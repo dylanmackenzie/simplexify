@@ -1,38 +1,53 @@
 /* jshint esnext: true */
 
-// DelaunaySolver computes the Delaunay triangulation for a given set of
+import { partition } from './median'
+
+var global = (1,eval)('this')
+if (!global.debug) {
+  global.debug = function () {}
+}
+
+// Triangulation computes the Delaunay triangulation for a given set of
 // points. It accepts an array of objects which have both an x and a y
-// property whose values are numbers
+// property whose values are numbers.name
 //
 // verts is an array of objects with an array containing the x and y
 // coordinates (p) and a pointer to a triangle (t) in the corresponding
-// tris array which contains this vertex
+// tris array which contains this vertex.
 //
 // tris is an array of objects containing two sub-arrays:
 // v contains three pointers representing the vertices
 // of the triangle in counter-clockwise order.
-// n contains pointers to the triangles which share edges with this one.
+// n contains pointers to the triangles which share edges with it.
 // Neighbors are ordered such that n[0] shares the edge opposite to
-// v[0]
+// v[0].
 //
 // tree is a flattened 2d tree used for efficiently selecting which
 // groups to merge
-export default function DelaunaySolver(points) {
+export default Triangulation
+function Triangulation(points) {
 
   var verts = this.verts = new Array(points.length)
   points.forEach(function (p, i) {
     verts[i] = { p: [p.x, p.y], t: null }
   })
 
-  var tris = this.tris = []
-  tris = tris
+  this.tris = []
 }
 
-// initTree takes an array of unsorted vertices and arranges them
-// in-place into a flattened 2d-tree. It is a wrapper for the recursive
-// function `sort2d`
-DelaunaySolver.prototype.initTree = function () {
+// Helper function for printing triangles
+Triangulation.prototype.tri = function (t) {
+  var verts = this.verts
+  return t.v.map(function (v) {
+    return verts.indexOf(v)
+  }).toString()
+}
 
+// delaunay sorts the vertices into a 2d-tree and solves the Delaunay
+// Triangulation for those vertices
+Triangulation.prototype.delaunay = function () {
+  sort2d(this.verts, 0, 0, this.verts.length - 1)
+  this.solve(0, 0, this.verts.length - 1)
 }
 
 // sort2d is called recursively to sort an array of vertices into a
@@ -43,112 +58,263 @@ export function sort2d(ar, j, p, r) {
     return
   }
 
+  debug('sort2d', arguments)
+
   // q is the index of the midpoint of the array
-  var q = ((p+r) >> 1) + p
+  var q = (p+r) >> 1
 
-  // if the current depth is even, use the x coordinate as the
-  // discriminator, else use the y coordinate
-  var e = j & 1
-
-  // coords is an array containing only the discriminator
-  // we use it for sorting
-  var coords = ar.slice(p, r+1).map(function (v) {
-    return v.p[e]
-  })
-
-
-  // m is the index of the median element in ar
-  var m = coords.indexOf(median(coords)) + p
-  console.log(coords, median(coords), m);
-
-  // swap median and midpoint
-  var med = ar[m]
-  ar[m] = ar[q]
-  ar[q] = med
-
-  // partition elements on either side of the median
-  // TODO: do an in place partition
-  var lt = []
-  var gt = []
-  var eq = []
-  var cmp = med.p[e]
-  var cur
-  for (var i = p; i <= r; i++) {
-    cur = ar[i]
-    if (cur.p[e] < cmp) {
-      lt.push(cur)
-    } else if (cur.p[e] < cmp) {
-      gt.push(cur)
-    } else /* equal to median */ {
-      eq.push(cur)
-    }
-  }
-
-  var sorted = lt.concat(eq, gt)
-  for (i = p; i <= r; i++) {
-    ar[i] = sorted[i]
-  }
-
-  console.log(ar, m, p, r)
-  console.log()
+  // partition the subset of the array around its median
+  partition(ar, j, p, r)
 
   // recursively partition using the other coordinate
-  sort2d(ar, j+1, p, q-1)
+  sort2d(ar, j+1, p, q)
   sort2d(ar, j+1, q+1, r)
 }
 
-// median implements the median of medians algorithm recursively. It
-// uses an insertion sort to sort the small arrays due to its low
-// overhead.
-export function median(ar) {
-  var len = ar.length
+// solve is the recursive function actually responsible for computing
+// the triangulation
+Triangulation.prototype.solve = function (j, p, r) {
+  var verts = this.verts
 
-  if (len <= 5) {
-    insertionSort(ar, 0, ar.length)
-    return ar[len >> 1]
+  debug('solve', arguments)
+
+  if (r - p === 1) {
+    this.createTriangle(verts[p], verts[r])
+    return
   }
 
-  // lim cause the loop to skip the last elements if they are not
-  // divisible y 5
-  var lim = len - 5
-  var medians = []
-  for (var i = 0; i <= lim; i += 5) {
-    insertionSort(ar, i, i+5)
-    medians.push(ar[i + 2])
-    console.log(ar.slice(i, i+5));
-    console.log(medians);
+  // TODO: check for colinearity
+  var cp
+  if (r - p === 2) {
+    // order points in ccw fashion
+    cp = cross(verts[p], verts[p+1], verts[r])
+    if (cp < 0) {
+      this.createTriangle(verts[p], verts[p+1], verts[r])
+    } else if (cp > 0) {
+      this.createTriangle(verts[p], verts[r], verts[p+1])
+    } else {
+      throw new Error('colinear vertices')
+    }
+
+    return
   }
 
+  var q = (r+p) >> 1
 
-  // Sort leftover elements if we have them
-  if (i != len) {
-    insertionSort(ar, i, len)
-    medians.push(ar[i + ((len-i-1) >> 1)])
-    console.log(ar.slice(i, len));
-    console.log(medians);
+  this.solve(j+1, p, q)
+  this.solve(j+1, q+1, r)
+
+  // flip sides for merges at odd depths to ensure consistency in
+  // algorithms using cwghost and ccwghost
+  if (j & 1) {
+    this.merge(j, q+1, r, p, q)
+  } else {
+    this.merge(j, p, q, q+1, r)
   }
-
-  return median(medians)
 }
 
-// sorts ar from p to r (exlcuding r)
-export function insertionSort(ar, p, r) {
-  var tmp
-  for (var i = p+1; i < r; i++) {
-    for (var j = i; j > p && ar[j-1] > ar[j]; --j)  {
-      tmp = ar[j]
-      ar[j] = ar[j-1]
-      ar[j-1] = tmp
-    }
+// createTriangle creates a new triangle from a raw set of vertices. It
+// is used only in the base case of the recursive merge. The vertices
+// must be passed in in ccw order, and the neighbors will be populated
+// with ghost triangles
+Triangulation.prototype.createTriangle = function (v0, v1, v2) {
+  // t refers to the real triangle (the one with no null vertices)
+  var t, t1, t2, t3
+
+  debug('createTriangle', arguments)
+
+  if (v2 == null) {
+    t1 = this.createGhost(v0, v1)
+    t2 = this.createGhost(v1, v0)
+    v0.t = v1.t = t1
+    t1.n[0] = t1.n[1] = t1.n[2] = t2
+    t2.n[0] = t2.n[1] = t2.n[2] = t1
+  } else /* full triangle */ {
+    t  = {v: [v0, v1, v2], n: new Array(3)}
+    t1 = this.createGhost(v1, v0)
+    t2 = this.createGhost(v2, v1)
+    t3 = this.createGhost(v0, v2)
+    v0.t = v1.t = v2.t = t
+    t1.n[2] = t2.n[2] = t3.n[2] = t
+    t.n[0] = t2
+    t.n[1] = t3
+    t.n[2] = t1
+    t1.n[0] = t2.n[1] = t3
+    t2.n[0] = t3.n[1] = t1
+    t3.n[0] = t1.n[1] = t2
+    this.tris.push(t)
+  }
+}
+
+Triangulation.prototype.createGhost = function (v0, v1) {
+  debug('createGhost', arguments)
+
+  var t = {v: [v0, v1, null], n: new Array(3)}
+  this.tris.push(t)
+
+  return t
+}
+
+// merge merges the vertices specified by ls and the ones specified by
+// rs into a delaunay triangulation.
+Triangulation.prototype.merge = function (j, lp, lr, rp, rr) {
+  debug('merge', arguments)
+
+  var verts = this.verts
+  var e = j & 1
+
+  // topl and topr contain the vertices of the upper convex boundary
+  // vl0 and vr0 are the vertices making up the current base edge. These
+  // will be changed to reflect the new base edge as they move up
+  var [vl0, vr0]  = boundary(verts, j, lp, lr, rp, rr)
+  var [topr, topl] = boundary(verts, j, rp, rr, lp, lr)
+
+  // Create ghost triangles on convex boundaries. tb will be constantly
+  // updated as the merge moves upwards, ttop is only used at the end
+  // when it is stored in the neighbor list of the last merged triangle.
+  var tb = this.createGhost(vr0, vl0)
+  var ttop = this.createGhost(topl, topr)
+  var ttmp
+
+  if (tb.v[1] === ttop.v[0]) {
+    tb.n[0] = ttop
+    ttop.n[1] = tb
+  } else {
+    ttmp = ccwghost(vl0)
+    ttmp.n[1] = tb
+    tb.n[0] = ttmp
+    ttmp = cwghost(topl)
+    ttmp.n[0] = ttop
+    ttop.n[1] = ttmp
   }
 
-  return ar
+  if (tb.v[0] === ttop.v[1]) {
+    tb.n[1] = ttop
+    ttop.n[0] = tb
+  } else {
+    ttmp = cwghost(vr0)
+    ttmp.n[0] = tb
+    tb.n[1] = ttmp
+    ttmp = ccwghost(topr)
+    ttmp.n[1] = ttop
+    ttop.n[0] = ttmp
+  }
+
+  // vl1 and vr1 are the cantidate vertices for the next merge step
+  var vl1, vr1
+
+  // tl and tr are ghost triangles which connect vl1 and vr1 to the base
+  // vertices
+  var tl = cwghost(vl0)
+  var tr = ccwghost(vr0)
+
+  // t is the triangle that has been newly created by the merge
+  // iteration. It is the starting point for flip propagation
+  var t
+
+  // useLeftGhost is a boolean which decides which region we use in the
+  // next phase of the merge we. The rest are temporary storage for
+  // computing useLeftGhost
+  var useLeftGhost, langle, rangle, lrangle
+
+  // Move upward between the regions, merging them as we go. Exit when
+  // we reach the top edge
+  while (!(vl0 === topl && vr0 === topr)) {
+    debug('merge step', [verts.indexOf(vl0), verts.indexOf(vr0)])
+
+    // tl and tr are the ghost triangles which can be mated with the
+    // opposite region
+    // set vl1 and vr1 to the other vertex of the cantidate ghost
+    // triangle
+    vl1 = tl.v[0]
+    vr1 = tr.v[1]
+
+    // Merge using the cantidate vertex with the lowest angle above the
+    // line connecting the two base vertices (we want to pick the o in
+    // the following diagram):
+    //       vl1
+    //        x
+    //       /  .
+    //      / vr1 .
+    //     /    o_  .
+    //    /       ———_.
+    //   .------------——.
+    //  vl0            vr0
+    rangle = angle(vr1, vr0, vl0)
+    langle = angle(vr0, vl0, vl1)
+    useLeftGhost = rangle > langle
+    if (useLeftGhost) {
+      lrangle = angle(vl1, vr0, vl0)
+      if (lrangle > rangle) {
+        useLeftGhost = false
+      }
+    } else {
+      lrangle = angle(vr0, vl0, vr1)
+      if (lrangle > langle) {
+        useLeftGhost = true
+      }
+    }
+
+    if (useLeftGhost) {
+      // mate the left ghost with the right base vertex
+      t = mateghost(tl, vr0, tb)
+
+      // flip_p2(t, index(t, v R0 )) and set t = mccwt(v L1 ).
+      // flipP2(t, t.v.indexOf(vr0))
+      // t = mccwt(vl1)
+
+      // If t base ≠ø then mate(t, t base ), flip_p4(t, index(t, t base )),
+      // t = mccwt(v L1 ).
+      // if (tb != null) {
+        // mate(t, tb)
+        // flipP4(t, t.n.indexOf(tb))
+        // t = mccwt(vl1)
+      // }
+
+      // Move base up by one vertex
+      vl0 = vl1
+      tl = cwghost(vl0)
+
+    } else /* right triangle */{
+      // mate the right ghost with the left base vertex
+      t = mateghost(tr, vl0, tb)
+
+      // flip_p2(t, index(t, v L0 )) and set t = mcwt(v R1 ).
+      // flipP2(t, t.v.indexOf(vl0))
+      // t = mcwt(vr1)
+
+      // If t base ≠ø then mate(t, t base ), flip_p4(t, index(t, t base )),
+      // and set t = mcct(v R1 ).
+      // if (tb != null) {
+        // mate(t, tb)
+        // flipP4(t, t.n.indexOf(tb))
+        // t = mcwt(vr1)
+      // }
+
+      // Move base up by one vertex and go to next ghost triangle
+      vr0 = vr1
+      tr = ccwghost(vr0)
+    }
+
+    // update the relevant trangles for next merge step
+    tb = t
+  }
+
+  // We are now at the top of the merge so add the ghost triangle at the
+  // upper convex boundary to the neighbors of t to complete the merge
+  ttop.n[2] = t
+  for (var i = 0; i < 3; i++) {
+    if (ttop.v.indexOf(t.v[i]) === -1) {
+      t.n[i] = ttop
+      break
+    }
+  }
 }
 
 // flip performs an edge flip between triangle t and t.n[i] (the ith
 // neighbor of t)
-DelaunaySolver.prototype.flip = function (t, i) {
-  var tmp
+function flip(t, i) {
+  debug('flip', arguments)
 
   // u is the neighbor to be flipped with
   var u = t.n[i]
@@ -157,10 +323,10 @@ DelaunaySolver.prototype.flip = function (t, i) {
   var j = u.n.indexOf(t)
 
   // cache index math
-  var i1 = i+1%3
-  var i2 = i+2%3
-  var j1 = j+1%3
-  var j2 = j+2%3
+  var i1 = (i+1)%3
+  var i2 = (i+2)%3
+  var j1 = (j+1)%3
+  var j2 = (j+2)%3
 
   // change ownership of vertices if needed
   if (t.v[i1].t === t) {
@@ -175,7 +341,7 @@ DelaunaySolver.prototype.flip = function (t, i) {
   u.v[j1] = t.v[i]
 
   // swap neighbor not involved in flip
-  tmp = t.n[i2]
+  var tmp = t.n[i2]
   t.n[i2] = u.n[j2]
   u.n[j2] = tmp
 
@@ -184,119 +350,277 @@ DelaunaySolver.prototype.flip = function (t, i) {
   t.n[i2] = u
 }
 
+// flipP2 propogates flips in 2 directions
+function flipP2(t, i) {
+  // If tri(t 0 , i 0 )=ø then quit.
+  var t1 = t.n[i]
+  if (t1 != null) {
+    return
+  }
 
+  debug('flipP2', arguments)
 
-export function split(vertices) {
-  var splits = [vertices.length]
-  var tmp, v
+  // Set t 1 = tri(t 0 , i 0 ) and i 1 = index(t 1 , t 0 ).
+  var i1 = t1.n.indexOf(t)
 
+  // If vert(t 1 , i 1 ) is not included by the circumcircle of t 0 , quit.
+  if (!inCircle(t, t1.v[i1])) {
+    return
+  }
+
+  // Do flip(t 0 , i 0 ).
+  flip(t, i)
+
+  // Call flip_p2(edge(t 0 , i 0 )).
+  flipP2(t, i)
+
+  // Call flip_p2(edge(t 1 , i 1 +1)).
+  flipP2(t1, (i1+1)%3)
+
+}
+
+// flipP4 propogates flips in 4 directions
+function flipP4(t, i) {
+  // If tri(t 0 , i 0 ) = ø or t 0 ≠ (v 0 , v 1 , v 2 ) then quit.
+  var t1 = t.n[i]
+  if (t1 != null) {
+    return
+  }
+
+  debug('flipP4', arguments)
+
+  // Set t 1 = tri(t 0 , i 0 ) and i 1 = index(t 1 , t 0 ).
+  var i1 = t1.n.indexOf(t)
+
+  // If vert(t 1 , i 1 ) is not included by the circumcircle of t 0 , quit.
+  if (!inCircle(t, t1.v[i1])) {
+    return
+  }
+
+  // Do flip(t 0 , i 0 ).
+  flip(t, i)
+
+  // Set t a = (t 0 , i 0 ), t b = (t 1 , i 1 +1), t c = (t 1 , i 1 ),
+  // and t d = (t 0 , i 0 +1).
+  var ta = t.n[i]
+  var tb = t1.n[(i1+1)%3]
+  var tc = t1.n[i1]
+  var td = t.n[(i+1)%3]
+
+  // Call flip_p4(edge(t a , index(t a , t 0 ))
+  // Call flip_p4(edge(t b , index (t b , t 1 ))
+  // Call flip_p4(edge(t c , index(t c , t 1 ))
+  // Call flip_p4(edge(t d , index(t d , t 0 ))
+  flipP4(ta, i)
+  flipP4(tb, (i1+1)%3)
+  flipP4(tc, i1)
+  flipP4(td, (i+1)%3)
+
+}
+
+export function isghost(t) {
+  return t.v[2] == null
+}
+
+export function ccwghost(v) {
+  debug('ccwghost', arguments)
+
+  var t = v.t
+  var i = 0 // detect infinite loops during debugging
+
+  // If the vertex's triangle is already a ghost, we need to see if we
+  // are on the correct side. If so, we return immediately.
+  if (isghost(t) && t.v.indexOf(v) === 0) {
+    return t
+  }
+
+  do {
+    t = t.n[(t.v.indexOf(v)+1)%3]
+    if (i++ > 1000) {
+      throw new Error('ccwghost called on triangle not on boundary')
+    }
+  } while (!isghost(t))
+
+  return t
+}
+
+// cwghost starts at the triangle referenced by v and iterates clockwise
+// around the triangles which contain v until it finds a ghost triangle
+export function cwghost(v) {
+  debug('cwghost', arguments)
+
+  var t = v.t
+  var i = 0 // detect infinite loops during debugging
+
+  // If the vertex's triangle is a ghost, we need to immediately check
+  // if we are on the correct side. If so, we return.
+  if (isghost(t) && t.v.indexOf(v) === 1) {
+    return t
+  }
+
+  do {
+    t = t.n[(t.v.indexOf(v)+2)%3]
+    if (i++ > 1000) {
+      throw new Error('cwghost called on triangle not on boundary')
+    }
+  } while (!isghost(t))
+
+  return t
+}
+
+// mateghost turns a ghost triangle (t) into a real triangle by linking
+// it to vertex (v) and linking it with the triangle below it (tb)
+export function mateghost(t, v, tb) {
+  debug('mateghost', arguments)
+
+  t.v[2] = v
+
+  for (var i = 0; i < 3; i++) {
+    if (tb.v.indexOf(t.v[i]) === -1) {
+      t.n[i] = tb
+    }
+    if (t.v.indexOf(tb.v[i]) === -1) {
+      tb.n[i] = t
+    }
+  }
+
+  return t
+}
+
+// inCircle returns true if v is in the circumcircle of t
+export function inCircle(t, v) {
+  var [ a, b, c ] = t.v
+  var [ ax, ay ] = a.p
+  var [ bx, by ] = b.p
+  var [ cx, cy ] = c.p
+  var [ vx, vy ] = v.p
+
+  // algorithm from wikipedia
+  var d = 2*(ax*(by-cy) + bx*(cy-ay) + cx*(ay-by))
+  var am = ax*ax+ay*ay
+  var bm = bx*bx+by*by
+  var cm = cx*cx+cy*cy
+  var ux = (am*(by-cy) + bm*(cy-ay) + cm*(ay-by))/d
+  var uy = (am*(cx-bx) + bm*(ax-cx) + cm*(bx-ax))/d
+  var ur = (ux-ax)*(ux-ax) + (ux-ay)*(ux-ay)
+  var vr = (ux-vx)*(ux-vx) + (ux-vy)*(ux-vy)
+
+  return ur > vr
+}
+
+export function boundary(ar, j, lp, lr, rp, rr) {
+  debug('boundary', arguments)
+
+  var e = j & 1
+
+  // Let l be the rightmost point of lp-lr
+  // Let r be the leftmost point of rp-rr
+  // TODO: use the tree to find minimums
+  var l, r
+  if (lp < rp) {
+    l = findMax(ar, 0, e, lp, lr)
+    r = findMin(ar, 0, e, rp, rr)
+  } else {
+    l = findMin(ar, 0, e, lp, lr)
+    r = findMax(ar, 0, e, rp, rr)
+  }
+
+  var tl = ccwghost(l)
+  var tr = cwghost(r)
+  var check = 0
+
+  var v, bx, by, vx, vy
   while (true) {
-    tmp = []
-    for (var i = 0, len = splits.length; i < len; i++) {
-      v = splits[i]
-      if (v & 1) { // if v is odd
-        tmp.push((v >> 1) + 1)
-        tmp.push(v >> 1)
-      } else {
-        tmp.push(v >> 1)
-        tmp.push(v >> 1)
+    while(1) {
+      // break and increment counter if lr is tangent to left side
+      v = tl.v[1]
+      if (cross(r, l, v) > 0) {
+        ++check
+        break
       }
-    }
-    splits = tmp
 
-    // splitting algorithm ensures the largest split is at the beginning
-    // if it is less than or equal to 3, then so is everything else
-    if (splits[0] <= 3) {
-      break
+      // move l clockwise
+      l = v
+      tl = tl.n[0]
+      v = tl.v[1]
+      check = 0
+    }
+
+    if (check === 2) {
+      debug('boundary done', [ar.indexOf(l), ar.indexOf(r)])
+      return [l, r]
+    }
+
+    while (1) {
+      // increment counter and break if lr is tangent to right side
+      v = tr.v[0]
+      if (cross(r, l, v) > 0) {
+        ++check
+        break
+      }
+
+      // move r counterclockwise
+      r = v
+      tr = tr.n[1]
+      v = tr.v[0]
+      check = 0
+    }
+
+    if (check === 2) {
+      debug('boundary done', [ar.indexOf(l), ar.indexOf(r)])
+      return [l, r]
     }
   }
-
-  return splits
-
 }
 
-// baseEdge finds the lowest LR edge
-// a and b are arrays containing vertices in 2d space
-export function baseEdge(l, r) {
-  // find lowest y coord
-  var low = l[0]
-  var lowy = low.y
-  var isRight = false
-
-  for (var i = 1, len = l.length; i < len; i++) {
-    if (l[i].y < lowy) {
-      low = l[i]
-      lowy = low.y
-    } else if (l[i].y === lowy) {
-      if (l[i].x > low.x) {
-        low = l[i]
-      }
-    }
-  }
-  for (i = 0, len = r.length; i < len; i++) {
-    if (r[i].y < lowy) {
-      low = r[i]
-      lowy = low.y
-      isRight = true
-    } else if (r[i].y === lowy) {
-      if (r[i].x < low.x) {
-        low = r[i]
-        isRight = true
-      }
+function findMin(ar, j, e, p, r) {
+  var i, pos, min, minPos = Infinity
+  for (i = p; i <= r; i++) {
+    pos = ar[i].p[e]
+    if (pos < minPos) {
+      minPos = pos
+      min = ar[i]
     }
   }
 
-  // find vertex from other group with lowest angle from x axis
-  var other = isRight ? r : l
-  var rmul = isRight ? -1 : 1
-  var lowx = low.x
-  var min = 90
-  var angle, second
-  for (i = 0, len = other.length; i < len; i++) {
-    angle = Math.atan(rmul * (other[i].y - lowy) / (other[i].x - lowx))
-    if (angle < min) {
-      min = angle
-      second = other[i]
-    }
-  }
-
-  return [ low, second ]
-
+  return min
 }
 
-// Merge two groups of triangles
-export function merge() {
-
-}
-
-var Triangle = null
-
-export function initTriangles(vertices) {
-  // initialize triangles/ghost triangles for set of vertices
-
-  var ts, t1, t2, t3, t4
-
-  if (split === 2) {
-    ts = new Array(2)
-    t1 = ts[0]= new Triangle(vertices)
-    t2 = ts[1]= new Triangle(vertices)
-    t1.adj[0] = t1.adj[1] = t1.adj[2] = t2
-    t2.adj[0] = t2.adj[1] = t2.adj[2] = t1
-  } else /* split === 3 */ {
-    ts = new Array(4)
-    t1 = ts[0]= new Triangle(vertices)
-    t2 = ts[1]= new Triangle(vertices)
-    t3 = ts[2]= new Triangle(vertices)
-    t4 = ts[3]= new Triangle(vertices)
-    t1.adjs[0] = t2
-    t1.adjs[1] = t3
-    t1.adjs[2] = t4
-    t2.verts[0] = t3.verts[1] = t4.verts[2] = null
-    t2.adj[0] = t3.adj[1] = t4.adj[2] = t1
-    t3.adj[0] = t4.adj[0] = t2
-    t2.adj[1] = t4.adj[1] = t3
-    t2.adj[2] = t3.adj[2] = t4
+function findMax(ar, j, e, p, r) {
+  var i, pos, max, maxPos = -Infinity
+  for (i = p; i <= r; i++) {
+    pos = ar[i].p[e]
+    if (pos > maxPos) {
+      maxPos = pos
+      max = ar[i]
+    }
   }
 
-  return ts
+  return max
+}
+
+// cross comp
+export function cross(v0, vs, v1) {
+  var ux = v0.p[0] - vs.p[0]
+  var uy = v0.p[1] - vs.p[1]
+  var vx = v1.p[0] - vs.p[0]
+  var vy = v1.p[1] - vs.p[1]
+  return ux*vy - uy*vx
+}
+
+export function angle(v0, vs, v1) {
+  var ux = v0.p[0] - vs.p[0]
+  var uy = v0.p[1] - vs.p[1]
+  var vx = v1.p[0] - vs.p[0]
+  var vy = v1.p[1] - vs.p[1]
+  var cross = ux*vy - uy*vx
+  var dot = ux*vx + uy*vy
+
+  if (cross === 0) {
+    return dot > 0 ?  0 : Math.PI
+  }
+
+  var angle = Math.acos(dot / (Math.sqrt(ux*ux+uy*uy) * Math.sqrt(vx*vx+vy*vy)))
+
+  return cross > 0 ? angle : 2*Math.PI - angle
 }
