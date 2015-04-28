@@ -530,43 +530,32 @@ export function boundary(ar, j, lp, lr, rp, rr) {
   var check = 0
 
   var v, bx, by, vx, vy
-  while (true) {
-    while(1) {
-      // break and increment counter if lr is tangent to left side
-      v = tl.v[1]
-      if (cross(r, l, v) > 0) {
-        ++check
-        break
-      }
+  for (;;) {
 
-      // move l clockwise
+    // move l clockwise until it is a tangent to the right side
+    v = tl.v[1]
+    while (cross(r, l, v) > 0) {
       l = v
       tl = tl.n[0]
       v = tl.v[1]
       check = 0
     }
 
-    if (check === 2) {
+    if (++check === 2) {
       debug('boundary done', [ar.indexOf(l), ar.indexOf(r)])
       return [l, r]
     }
 
-    while (1) {
-      // increment counter and break if lr is tangent to right side
-      v = tr.v[0]
-      if (cross(r, l, v) > 0) {
-        ++check
-        break
-      }
-
-      // move r counterclockwise
+    // move r counterclockwise until it is a tangent to the left side
+    v = tr.v[0]
+    while (cross(r, l, v) > 0) {
       r = v
       tr = tr.n[1]
       v = tr.v[0]
       check = 0
     }
 
-    if (check === 2) {
+    if (++check === 2) {
       debug('boundary done', [ar.indexOf(l), ar.indexOf(r)])
       return [l, r]
     }
@@ -599,7 +588,7 @@ function findMax(ar, j, e, p, r) {
   return max
 }
 
-// cross comp
+// cross computes (v0-vs)x(v1-vs)
 export function cross(v0, vs, v1) {
   var ux = v0.p[0] - vs.p[0]
   var uy = v0.p[1] - vs.p[1]
