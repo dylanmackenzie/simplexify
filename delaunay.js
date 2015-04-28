@@ -1,8 +1,10 @@
-/* jshint esnext: true */
+/* global debug */
 
 import { partition } from './median'
 
-var global = (1,eval)('this')
+const π = Math.PI
+
+var global = (1, eval)('this')
 if (!global.debug) {
   global.debug = function () {}
 }
@@ -130,7 +132,7 @@ Triangulation.prototype.createTriangle = function (v0, v1, v2) {
     t1.n[0] = t1.n[1] = t1.n[2] = t2
     t2.n[0] = t2.n[1] = t2.n[2] = t1
   } else /* full triangle */ {
-    t  = {v: [v0, v1, v2], n: new Array(3)}
+    t = {v: [v0, v1, v2], n: new Array(3)}
     t1 = this.createGhost(v1, v0)
     t2 = this.createGhost(v2, v1)
     t3 = this.createGhost(v0, v2)
@@ -161,12 +163,11 @@ Triangulation.prototype.merge = function (j, lp, lr, rp, rr) {
   debug('merge', arguments)
 
   var verts = this.verts
-  var e = j & 1
 
   // topl and topr contain the vertices of the upper convex boundary
   // vl0 and vr0 are the vertices making up the current base edge. These
   // will be changed to reflect the new base edge as they move up
-  var [vl0, vr0]  = boundary(verts, j, lp, lr, rp, rr)
+  var [vl0, vr0] = boundary(verts, j, lp, lr, rp, rr)
   var [topr, topl] = boundary(verts, j, rp, rr, lp, lr)
 
   // Create ghost triangles on convex boundaries. tb will be constantly
@@ -502,8 +503,8 @@ export function inCircle(t, v) {
   var cm = cx*cx+cy*cy
   var ux = (am*(by-cy) + bm*(cy-ay) + cm*(ay-by))/d
   var uy = (am*(cx-bx) + bm*(ax-cx) + cm*(bx-ax))/d
-  var ur = (ux-ax)*(ux-ax) + (ux-ay)*(ux-ay)
-  var vr = (ux-vx)*(ux-vx) + (ux-vy)*(ux-vy)
+  var ur = (ux-ax)*(ux-ax) + (uy-ay)*(uy-ay)
+  var vr = (ux-vx)*(ux-vx) + (uy-vy)*(uy-vy)
 
   return ur > vr
 }
@@ -525,11 +526,11 @@ export function boundary(ar, j, lp, lr, rp, rr) {
     r = findMax(ar, 0, e, rp, rr)
   }
 
+  var v
   var tl = ccwghost(l)
   var tr = cwghost(r)
   var check = 0
 
-  var v, bx, by, vx, vy
   for (;;) {
 
     // move l clockwise until it is a tangent to the right side
@@ -602,14 +603,14 @@ export function angle(v0, vs, v1) {
   var uy = v0.p[1] - vs.p[1]
   var vx = v1.p[0] - vs.p[0]
   var vy = v1.p[1] - vs.p[1]
-  var cross = ux*vy - uy*vx
+  var xp = ux*vy - uy*vx
   var dot = ux*vx + uy*vy
 
-  if (cross === 0) {
-    return dot > 0 ?  0 : Math.PI
+  if (xp === 0) {
+    return dot > 0 ? 0 : π
   }
 
-  var angle = Math.acos(dot / (Math.sqrt(ux*ux+uy*uy) * Math.sqrt(vx*vx+vy*vy)))
+  var ang = Math.acos(dot / (Math.sqrt(ux*ux+uy*uy) * Math.sqrt(vx*vx+vy*vy)))
 
-  return cross > 0 ? angle : 2*Math.PI - angle
+  return xp > 0 ? ang : 2*π - ang
 }

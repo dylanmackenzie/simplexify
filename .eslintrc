@@ -9,4 +9,5 @@ rules:
     semi: [2, 'never']
     quotes: [2, 'single']
     no-debugger: true
-    space-infix-ops: [1]
+    space-infix-ops: [0]
+    no-use-before-define: [2, 'nofunc']
