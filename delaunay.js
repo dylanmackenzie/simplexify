@@ -1,6 +1,6 @@
 /* global debug */
 
-import { partition } from './median'
+import { slowPartition as partition } from './median'
 
 const π = Math.PI
 
@@ -535,7 +535,7 @@ export function boundary(ar, j, lp, lr, rp, rr) {
 
     // move l clockwise until it is a tangent to the right side
     v = tl.v[1]
-    while (cross(r, l, v) > 0) {
+    while (cross(r, l, v) < 0) {
       l = v
       tl = tl.n[0]
       v = tl.v[1]
@@ -549,7 +549,7 @@ export function boundary(ar, j, lp, lr, rp, rr) {
 
     // move r counterclockwise until it is a tangent to the left side
     v = tr.v[0]
-    while (cross(r, l, v) > 0) {
+    while (cross(r, l, v) < 0) {
       r = v
       tr = tr.n[1]
       v = tr.v[0]

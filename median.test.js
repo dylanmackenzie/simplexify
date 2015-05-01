@@ -4,31 +4,23 @@ import assert from 'assert'
 
 var tests = {}
 
-tests.median = {
-  ins: [
-    [4,1,3,2,5],
-    [4, 1]
-  ],
-  outs: [
-    3,
-    1
-  ]
-}
-
 tests.partition = {
   ins: [
-    [4,1,3,2,5,8,9],
-    [1,4],
+    [ [4,1,3,2,5,8,9], 0, 0, 6 ],
+    [ [1,4], 0, 0, 1 ],
+    [ [8,3,1,5,3,7,2,9,7,5,6,3,2,1,5,7], 0, 0, 15 ],
+    [ [8,3,1,5,3,7,2,9,7,5,6,3,2,1,5,1], 0, 8, 15 ]
   ]
 }
 
-describe('partition', function () {
+describe.skip('partition', function () {
   it('should partition an array about its median', function () {
     var cases = tests.partition
     cases.ins.forEach(function (test, i) {
-      var verts = test.map(function (p) { return {p: [p, 0]} })
-      med.partition(verts, 0, 0, verts.length - 1)
+      var verts = test[0].map(function (p) { return {p: [p, 0]} })
+      med.partition(verts, test[1], test[2], test[3])
       var median = verts[verts.length >> 1].p[0]
+      verts = verts.slice(test[2], test[3] + 1)
       verts.forEach(function (v, i) {
         if (i === verts.length >> 1) {
           return
@@ -44,13 +36,26 @@ describe('partition', function () {
   })
 })
 
-describe('median', function () {
-  it('should find the median of a subset of a give array', function () {
-    var cases = tests.median
+describe('slowPartition', function () {
+  it('should partition an array about its median', function () {
+    var cases = tests.partition
     cases.ins.forEach(function (test, i) {
-      var verts = test.map(function (p) { return {p: [p, 0]} })
-      var m = med.median(verts, 0, 0, verts.length - 1)
-      assert.equal(test[m], cases.outs[i])
+      var verts = test[0].map(function (p) { return {p: [p, 0]} })
+      med.slowPartition(verts, test[1], test[2], test[3])
+      var median = verts[verts.length >> 1].p[0]
+      verts = verts.slice(test[2], test[3] + 1)
+      verts.forEach(function (v, i) {
+        if (i === verts.length >> 1) {
+          return
+        }
+        var c = v.p[0]
+        console.log(c, i)
+        if (i < verts.length >> 1) {
+          c <= median || assert.fail(c, median, null, '<=')
+        } else {
+          c >= median || assert.fail(c, median, null, '>=')
+        }
+      })
     })
   })
 })

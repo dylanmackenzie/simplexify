@@ -14,14 +14,14 @@ var tests = {}
 
 tests.sort2d = {
   ins: [
-    [verts.slice(0), 1]
+    [verts.slice(0), 0]
   ],
   outs: [
     [3,2,1,5,0,7,6,4,8]
   ]
 }
 
-tests.boundaries = {
+tests.boundary = {
   ins: [
     [ sorted, 1, 0, 2, 3, 4],
     [ sorted, 1, 5, 6, 7, 8],
@@ -45,37 +45,15 @@ tests.angle = {
   ]
 }
 
-tests.boundAngle = {
-  ins: [
-  ],
-  outs: [
-  ]
-}
-
 describe('sort2d', function () {
   it('should sort an unordered array of vertices into a 2d tree', function () {
     var cases = tests.sort2d
     cases.ins.forEach(function (test, i) {
       var verts = test[0]
       var unsorted = verts.slice(0)
-      del.sort2d(verts, 0, 0, verts.length - 1)
+      del.sort2d(verts, test[1], 0, verts.length - 1)
       var actual = verts.map(function (v) {
         return unsorted.indexOf(v)
-      })
-      assert.deepEqual(actual, cases.outs[i])
-    })
-  })
-})
-
-describe('boundary', function () {
-  it('find lowest and highest convex boundary of vertices in a kd-tree', function () {
-    // test 1 is the depth
-    var cases = tests.boundaries
-    cases.ins.forEach(function (test, i) {
-      debugger
-      var actual = del.boundaries.apply(null, test)
-      actual = actual.map(function (v) {
-        return sorted.indexOf(v)
       })
       assert.deepEqual(actual, cases.outs[i])
     })
@@ -105,6 +83,6 @@ describe('flip', function () {
 
 })
 
-desc('inCircle', function () {
+describe('inCircle', function () {
 
 })

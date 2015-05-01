@@ -21,13 +21,13 @@ gulp.task('browserify', ['compile'], function () {
 })
 
 gulp.task('test', ['compile'], function () {
-  return gulp.src(['es5/delaunay.test.js', 'es5/median.test.js'], {read: false})
-    .pipe(mocha({debug: true}))
+  var spawn = require('child_process').spawn
+  spawn('mocha', ['es5/delaunay.test.js', 'es5/median.test.js'].concat(process.argv.slice(3)), {stdio: 'inherit'})
 })
 
 gulp.task('debug', ['compile'], function () {
   var spawn = require('child_process').spawn
-  spawn('mocha', ['debug', 'es5/delaunay.test.js', 'es5/median.test.js'], {stdio: 'inherit'})
+  spawn('mocha', ['--debug-brk', 'es5/delaunay.test.js', 'es5/median.test.js'].concat(process.argv.slice(3)), {stdio: 'inherit'})
 })
 
 gulp.task('browser', ['browserify'], function () {
