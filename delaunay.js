@@ -1,6 +1,6 @@
 /* global debug */
 
-import { slowPartition as partition } from './median'
+import { partition } from './median'
 
 const π = Math.PI
 
@@ -64,9 +64,10 @@ export function sort2d(ar, j, p, r) {
 
   // q is the index of the midpoint of the array
   var q = (p+r) >> 1
+  var e = j & 1
 
   // partition the subset of the array around its median
-  partition(ar, j, p, r)
+  partition(ar, e, p, r)
 
   // recursively partition using the other coordinate
   sort2d(ar, j+1, p, q)
