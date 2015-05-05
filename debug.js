@@ -11,25 +11,44 @@ var points = points.map(function (p) { return {x: p[0], y: p[1]} })
 
 size = [1, 1]
 points = []
-for (var i = 0; i < 100; i++) {
+for (var i = 0; i < 1000; i++) {
   points.push({x: Math.random(), y: Math.random()})
 }
 
 var tri = window.tri = new Triangulation(points)
 var view = window.view = new View(canvas, tri, size)
 
+window.checkNeighbors = function () {
+  tri.tris.forEach(function (t) {
+    if (t.v[2] == null) {
+      return
+    }
+    t.n.forEach(function (ne) {
+      if (ne == null) {
+        return
+      }
+      let count = 0
+      t.v.forEach(function (v) {
+        if (ne.v.indexOf(v) < 0) {
+          count++
+        }
+      })
+      if (count !== 1) {
+        console.log('Error in ' + tri.tri(t))
+      }
+    })
+  })
+}
+
 window.debug = function(f, args) {
   switch (f) {
     case 'boundary':
-      console.log('boundary', [].slice.call(args, 0))
-      break
     case 'boundary done':
-      console.log('boundary done', [].slice.call(args, 0))
       break
     case 'merge step':
     case 'merge':
       view.clear()
-      view.drawVerts()
+      view.drawVerts(true)
       view.drawTriangles(true)
       debugger
       break
@@ -37,18 +56,34 @@ window.debug = function(f, args) {
     case 'cwghost':
       break
     case 'mateghost':
+      console.log(f)
+      console.log(tri.tri(args[0]))
+      console.log(tri.verts.indexOf(args[1]))
+      console.log(tri.tri(args[2]))
+      break
+    case 'flipP2':
+    case 'flipP4':
+      break
+    case 'flip':
+      console.log(f, [].slice.call(args, 0))
+      view.clear()
+      view.drawVerts(true)
+      view.drawTriangles(true)
+      debugger
       break
   }
 }
+
+window.debug = function(){}
 
 view.drawVerts()
 try {
   tri.delaunay()
 } catch(e) {
   console.log(e)
-  console.log(points)
 }
 view.clear()
 view.drawVerts()
 view.drawTriangles()
+console.log(points)
 

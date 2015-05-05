@@ -1,9 +1,10 @@
+import { circumcenter } from './delaunay.js'
 export default DelaunayCanvas
-function DelaunayCanvas(canvas, del, size) {
+function DelaunayCanvas(canvas, tri, size) {
   this.canvas = canvas
   this.height = canvas.height
   this.width = canvas.width
-  this.del = del
+  this.tri = tri
   this.size = size
   var cx = this.cx = canvas.getContext('2d')
   if (cx == null) {
@@ -33,7 +34,7 @@ DelaunayCanvas.prototype.clear = function () {
 }
 
 DelaunayCanvas.prototype.drawTriangles = function (ghosts) {
-  var tris = this.del.tris
+  var tris = this.tri.tris
 
   for (var i = 0, len = tris.length; i < len; i++) {
     if (!ghosts && tris[i].v[2] == null) {
@@ -75,7 +76,7 @@ DelaunayCanvas.prototype.drawTriangle = function (tri) {
 }
 
 DelaunayCanvas.prototype.drawVerts = function (text) {
-  var verts = this.del.verts
+  var verts = this.tri.verts
 
   for (var i = 0, len = verts.length; i < len; i++) {
     this.drawVert(verts[i], text ? i : null)
@@ -97,8 +98,37 @@ DelaunayCanvas.prototype.drawVert = function (v, i) {
   }
 }
 
+DelaunayCanvas.prototype.drawNeighbors = function (v1, v2) {
+  let tris = this.tri.tris
+  let verts = this.tri.verts
+  let cx = this.cx
+
+  cx.strokeStyle = 'blue'
+
+  for (var i = 0, len = tris.length; i < len; i++) {
+    let t = tris[i]
+    if (t.v[2] == null) {
+      continue
+    }
+
+    let center = circumcenter(t)
+    for (var j = 0; j < 3; j++) {
+      if (t.n[j] == null || t.n[j].v[2] == null) {
+        continue
+      }
+
+      let c = circumcenter(t.n[j])
+      cx.beginPath()
+      cx.moveTo.apply(cx, this.coords.apply(this, center))
+      cx.lineTo.apply(cx, this.coords.apply(this, c))
+      cx.stroke()
+    }
+  }
+
+}
+
 DelaunayCanvas.prototype.drawEdge = function (v1, v2) {
-  var verts = this.del.verts
+  var verts = this.tri.verts
   var cx = this.cx
   var height = this.height
   var width = this.width
@@ -121,7 +151,7 @@ DelaunayCanvas.prototype.drawTree = function () {
   var height = this.height
   var width = this.width
   var size = this.size
-  var verts = this.del.verts
+  var verts = this.tri.verts
   var lines = []
 
   function getTree(ar, j, p, r, top, right, bot, left) {

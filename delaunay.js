@@ -39,10 +39,22 @@ function Triangulation(points) {
 
 // Helper function for printing triangles
 Triangulation.prototype.tri = function (t) {
-  var verts = this.verts
-  return t.v.map(function (v) {
+  let verts = this.verts
+  let vertLookup = function vertString(v) {
     return verts.indexOf(v)
-  }).toString()
+  }
+
+  let s = t.v.map(vertLookup).toString()
+
+  s += ' --> '
+  s += t.n.map(function (t) {
+    if (t == null) {
+      return 'null'
+    }
+    return t.v.map(vertLookup).toString()
+  }).join('; ')
+
+  return s
 }
 
 // delaunay sorts the vertices into a 2d-tree and solves the Delaunay
@@ -108,7 +120,7 @@ Triangulation.prototype.solve = function (j, p, r) {
   this.solve(j+1, q+1, r)
 
   // flip sides for merges at odd depths to ensure consistency in
-  // algorithms using cwghost and ccwghost
+  // algorithms using cw and ccw
   if (j & 1) {
     this.merge(j, q+1, r, p, q)
   } else {
@@ -182,10 +194,10 @@ Triangulation.prototype.merge = function (j, lp, lr, rp, rr) {
     tb.n[0] = ttop
     ttop.n[1] = tb
   } else {
-    ttmp = ccwghost(vl0)
+    ttmp = ccw(vl0)
     ttmp.n[1] = tb
     tb.n[0] = ttmp
-    ttmp = cwghost(topl)
+    ttmp = cw(topl)
     ttmp.n[0] = ttop
     ttop.n[1] = ttmp
   }
@@ -194,10 +206,10 @@ Triangulation.prototype.merge = function (j, lp, lr, rp, rr) {
     tb.n[1] = ttop
     ttop.n[0] = tb
   } else {
-    ttmp = cwghost(vr0)
+    ttmp = cw(vr0)
     ttmp.n[0] = tb
     tb.n[1] = ttmp
-    ttmp = ccwghost(topr)
+    ttmp = ccw(topr)
     ttmp.n[1] = ttop
     ttop.n[0] = ttmp
   }
@@ -207,8 +219,8 @@ Triangulation.prototype.merge = function (j, lp, lr, rp, rr) {
 
   // tl and tr are ghost triangles which connect vl1 and vr1 to the base
   // vertices
-  var tl = cwghost(vl0)
-  var tr = ccwghost(vr0)
+  var tl = cw(vl0)
+  var tr = ccw(vr0)
 
   // t is the triangle that has been newly created by the merge
   // iteration. It is the starting point for flip propagation
@@ -260,42 +272,32 @@ Triangulation.prototype.merge = function (j, lp, lr, rp, rr) {
     if (useLeftGhost) {
       // mate the left ghost with the right base vertex
       t = mateghost(tl, vr0, tb)
-
-      // flip_p2(t, index(t, v R0 )) and set t = mccwt(v L1 ).
-      // flipP2(t, t.v.indexOf(vr0))
-      // t = mccwt(vl1)
-
-      // If t base ≠ø then mate(t, t base ), flip_p4(t, index(t, t base )),
-      // t = mccwt(v L1 ).
-      // if (tb != null) {
-        // mate(t, tb)
-        // flipP4(t, t.n.indexOf(tb))
-        // t = mccwt(vl1)
-      // }
+      t.n[1] = null
 
       // Move base up by one vertex
       vl0 = vl1
-      tl = cwghost(vl0)
+      tl = cw(vl0)
+
+      flipP4(t, 2, t.v[0], t.v[1], t.v[2])
+      flipP4(t, 1, t.v[0], t.v[1], t.v[2])
+      flipP4(t, 0, t.v[0], t.v[1], t.v[2])
+
+      t = ccw(vl0)
 
     } else /* right triangle */{
       // mate the right ghost with the left base vertex
       t = mateghost(tr, vl0, tb)
-
-      // flip_p2(t, index(t, v L0 )) and set t = mcwt(v R1 ).
-      // flipP2(t, t.v.indexOf(vl0))
-      // t = mcwt(vr1)
-
-      // If t base ≠ø then mate(t, t base ), flip_p4(t, index(t, t base )),
-      // and set t = mcct(v R1 ).
-      // if (tb != null) {
-        // mate(t, tb)
-        // flipP4(t, t.n.indexOf(tb))
-        // t = mcwt(vr1)
-      // }
+      t.n[0] = null
 
       // Move base up by one vertex and go to next ghost triangle
       vr0 = vr1
-      tr = ccwghost(vr0)
+      tr = ccw(vr0)
+
+      flipP4(t, 2, t.v[0], t.v[1], t.v[2])
+      flipP4(t, 1, t.v[0], t.v[1], t.v[2])
+      flipP4(t, 0, t.v[0], t.v[1], t.v[2])
+
+      t = cw(vr0)
     }
 
     // update the relevant trangles for next merge step
@@ -303,19 +305,23 @@ Triangulation.prototype.merge = function (j, lp, lr, rp, rr) {
   }
 
   // We are now at the top of the merge so add the ghost triangle at the
-  // upper convex boundary to the neighbors of t to complete the merge
+  // upper convex boundary to the neighbors of t and propagate flips to
+  // complete the merge
   ttop.n[2] = t
   for (var i = 0; i < 3; i++) {
-    if (ttop.v.indexOf(t.v[i]) === -1) {
+    if (ttop.v.indexOf(t.v[i]) < 0) {
       t.n[i] = ttop
       break
     }
   }
+  flipP4(t, 2, t.v[0], t.v[1], t.v[2])
+  flipP4(t, 1, t.v[0], t.v[1], t.v[2])
+  flipP4(t, 0, t.v[0], t.v[1], t.v[2])
 }
 
 // flip performs an edge flip between triangle t and t.n[i] (the ith
 // neighbor of t)
-function flip(t, i) {
+export function flip(t, i) {
   debug('flip', arguments)
 
   // u is the neighbor to be flipped with
@@ -330,105 +336,155 @@ function flip(t, i) {
   var j1 = (j+1)%3
   var j2 = (j+2)%3
 
-  // change ownership of vertices if needed
-  if (t.v[i1].t === t) {
-    t.v[i1].t = u
-  }
-  if (u.v[j1].t === u) {
-    u.v[j1].t = t
-  }
-
   // swap vertices
   t.v[i1] = u.v[j]
   u.v[j1] = t.v[i]
 
+  // ensure ccw ordering if necessary
+  if (cross(t.v[i], t.v[i1], t.v[i2]) > 0) {
+    let tmp = t.v[i1]
+    t.v[i1] = t.v[i2]
+    t.v[i2] = tmp
+    let tmpi = i1
+    i1 = i2
+    i2 = tmp
+  }
+  if (cross(u.v[j], u.v[j1], u.v[j2]) > 0) {
+    let tmp = u.v[j1]
+    u.v[j1] = u.v[j2]
+    u.v[j2] = tmp
+    let tmpj = j1
+    j1 = j2
+    j2 = tmp
+  }
+
+  // change ownership of vertices if needed
+  if (t.v[i2].t === u) {
+    t.v[i2].t = t
+  }
+  if (u.v[j2].t === t) {
+    u.v[j2].t = u
+  }
+
   // swap neighbor not involved in flip
-  var tmp = t.n[i2]
-  t.n[i2] = u.n[j2]
-  u.n[j2] = tmp
+  t.n[i] = u.n[j2]
+  u.n[j] = t.n[i2]
+  if (t.n[i] != null) {
+    if (t.n[i].v[2] == null) {
+      t.n[i].n[2] = t
+    } else {
+      t.n[i].n[t.n[i].n.indexOf(u)] = t
+    }
+  }
+  if (u.n[j] != null) {
+    if (u.n[j].v[2] == null) {
+      u.n[j].n[2] = u
+    } else {
+      u.n[j].n[u.n[j].n.indexOf(t)] = u
+    }
+  }
 
   // swap neighbor position of other triangle in flip
   u.n[j2] = t
   t.n[i2] = u
 }
 
-// flipP2 propogates flips in 2 directions
+// flipP2 flips the edge across from t.v[i] and propagates in two
+// directions
 function flipP2(t, i) {
-  // If tri(t 0 , i 0 )=ø then quit.
+  debug('flipP2', arguments)
+
+  // If t.n[i] is a ghost triangle or doesn't exist, we are done
+  // propagating
   var t1 = t.n[i]
-  if (t1 != null) {
+  if (t1 == null || isghost(t1)) {
     return
   }
 
-  debug('flipP2', arguments)
-
-  // Set t 1 = tri(t 0 , i 0 ) and i 1 = index(t 1 , t 0 ).
+  // i1 is the index of our triangle in the other triangle
   var i1 = t1.n.indexOf(t)
+  if (i1 === -1) {
+    throw new Error('Bad triangulation')
+  }
 
-  // If vert(t 1 , i 1 ) is not included by the circumcircle of t 0 , quit.
+  // If the opposite vertex of the neighboring triangle is not in the
+  // circumcircle of the current triangle, there is no need to flip and
+  // we are done
   if (!inCircle(t, t1.v[i1])) {
     return
   }
 
-  // Do flip(t 0 , i 0 ).
   flip(t, i)
-
-  // Call flip_p2(edge(t 0 , i 0 )).
   flipP2(t, i)
-
-  // Call flip_p2(edge(t 1 , i 1 +1)).
   flipP2(t1, (i1+1)%3)
 
 }
 
-// flipP4 propogates flips in 4 directions
-function flipP4(t, i) {
-  // If tri(t 0 , i 0 ) = ø or t 0 ≠ (v 0 , v 1 , v 2 ) then quit.
+// flipP4 flips the edge between t and the ith neighbor of t and
+// propagates flips in 4 directions
+function flipP4(t, i, v0, v1, v2) {
+  debug('flipP4', arguments)
+
+  // If neighboring triangle is a ghost, does not exist, or has already
+  // been flipped
   var t1 = t.n[i]
-  if (t1 != null) {
+  if (isghost(t) || t1 == null || isghost(t1) ||
+      t.v.indexOf(v0) === -1 ||
+      t.v.indexOf(v1) === -1 ||
+      t.v.indexOf(v2) === -1) {
     return
   }
 
-  debug('flipP4', arguments)
-
-  // Set t 1 = tri(t 0 , i 0 ) and i 1 = index(t 1 , t 0 ).
+  // Set i1 to the index of the vertex not shared by t1
   var i1 = t1.n.indexOf(t)
+  if (i1 === -1) {
+    throw new Error('Bad triangulation')
+  }
 
-  // If vert(t 1 , i 1 ) is not included by the circumcircle of t 0 , quit.
+  // If the opposite vertex of the neighboring triangle is not in the
+  // circumcircle of the current triangle, there is no need to flip and
+  // we are done
   if (!inCircle(t, t1.v[i1])) {
     return
   }
 
-  // Do flip(t 0 , i 0 ).
+  // Flip the shared edge
   flip(t, i)
 
-  // Set t a = (t 0 , i 0 ), t b = (t 1 , i 1 +1), t c = (t 1 , i 1 ),
-  // and t d = (t 0 , i 0 +1).
+  // Set ta = (t, i), tb = (t1, i1+1), tc = (t1, i1), and td = (t, i+1).
   var ta = t.n[i]
   var tb = t1.n[(i1+1)%3]
   var tc = t1.n[i1]
   var td = t.n[(i+1)%3]
 
-  // Call flip_p4(edge(t a , index(t a , t 0 ))
-  // Call flip_p4(edge(t b , index (t b , t 1 ))
-  // Call flip_p4(edge(t c , index(t c , t 1 ))
-  // Call flip_p4(edge(t d , index(t d , t 0 ))
-  flipP4(ta, i)
-  flipP4(tb, (i1+1)%3)
-  flipP4(tc, i1)
-  flipP4(td, (i+1)%3)
-
+  // Call flip_p4(ta, index(ta, t))
+  // Call flip_p4(tb, index(tb, t1))
+  // Call flip_p4(tc, index(tc, t1))
+  // Call flip_p4(td, index(td, t))
+  if (ta != null) {
+    flipP4(ta, ta.n.indexOf(t), ta.v[0], ta.v[1], ta.v[2])
+  }
+  if (tb != null) {
+    flipP4(tb, tb.n.indexOf(t1), tb.v[0], tb.v[1], tb.v[2])
+  }
+  if (tc != null) {
+    flipP4(tc, tc.n.indexOf(t1), tc.v[0], tc.v[1], tc.v[2])
+  }
+  if (td != null) {
+    flipP4(td, td.n.indexOf(t), td.v[0], td.v[1], td.v[2])
+  }
 }
 
 export function isghost(t) {
   return t.v[2] == null
 }
 
-export function ccwghost(v) {
-  debug('ccwghost', arguments)
+export function ccw(v) {
+  debug('ccw', arguments)
 
   var t = v.t
   var i = 0 // detect infinite loops during debugging
+  var tnext
 
   // If the vertex's triangle is already a ghost, we need to see if we
   // are on the correct side. If so, we return immediately.
@@ -437,22 +493,27 @@ export function ccwghost(v) {
   }
 
   do {
-    t = t.n[(t.v.indexOf(v)+1)%3]
+    tnext = t.n[(t.v.indexOf(v)+1)%3]
+    if (tnext == null) {
+      return t
+    }
+    t = tnext
     if (i++ > 1000) {
-      throw new Error('ccwghost called on triangle not on boundary')
+      throw new Error('ccw called on triangle not on boundary')
     }
   } while (!isghost(t))
 
   return t
 }
 
-// cwghost starts at the triangle referenced by v and iterates clockwise
+// cw starts at the triangle referenced by v and iterates clockwise
 // around the triangles which contain v until it finds a ghost triangle
-export function cwghost(v) {
-  debug('cwghost', arguments)
+export function cw(v) {
+  debug('cw', arguments)
 
   var t = v.t
   var i = 0 // detect infinite loops during debugging
+  var tnext
 
   // If the vertex's triangle is a ghost, we need to immediately check
   // if we are on the correct side. If so, we return.
@@ -461,9 +522,13 @@ export function cwghost(v) {
   }
 
   do {
-    t = t.n[(t.v.indexOf(v)+2)%3]
+    tnext = t.n[(t.v.indexOf(v)+2)%3]
+    if (tnext == null) {
+      return t
+    }
+    t = tnext
     if (i++ > 1000) {
-      throw new Error('cwghost called on triangle not on boundary')
+      throw new Error('cw called on triangle not on boundary')
     }
   } while (!isghost(t))
 
@@ -477,16 +542,41 @@ export function mateghost(t, v, tb) {
 
   t.v[2] = v
 
+  if (tb.v.indexOf(v) < 0) {
+    throw new Error('Mating triangles that do not share vertices')
+  }
+
+  // Add t to the neighbors of tb and vice versa
   for (var i = 0; i < 3; i++) {
-    if (tb.v.indexOf(t.v[i]) === -1) {
+    if (tb.v.indexOf(t.v[i]) < 0) {
       t.n[i] = tb
     }
-    if (t.v.indexOf(tb.v[i]) === -1) {
+    if (t.v.indexOf(tb.v[i]) < 0) {
       tb.n[i] = t
     }
   }
 
   return t
+}
+
+export function circumradius(t) {
+
+}
+
+export function circumcenter(t) {
+  var [ a, b, c ] = t.v
+  var [ ax, ay ] = a.p
+  var [ bx, by ] = b.p
+  var [ cx, cy ] = c.p
+
+  var d = 2*(ax*(by-cy) + bx*(cy-ay) + cx*(ay-by))
+  var am = ax*ax+ay*ay
+  var bm = bx*bx+by*by
+  var cm = cx*cx+cy*cy
+  var ux = (am*(by-cy) + bm*(cy-ay) + cm*(ay-by))/d
+  var uy = (am*(cx-bx) + bm*(ax-cx) + cm*(bx-ax))/d
+
+  return [ux, uy]
 }
 
 // inCircle returns true if v is in the circumcircle of t
@@ -528,8 +618,8 @@ export function boundary(ar, j, lp, lr, rp, rr) {
   }
 
   var v
-  var tl = ccwghost(l)
-  var tr = cwghost(r)
+  var tl = ccw(l)
+  var tr = cw(r)
   var check = 0
 
   for (;;) {

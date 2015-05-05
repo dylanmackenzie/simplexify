@@ -11,10 +11,7 @@ export function slowPartition(ar, e, p, r) {
 export function partition(ar, e, p, r) {
   let q = (p+r) >> 1
 
-  debugger
-
   while (r - p > 4) {
-
     // Partition array around median of medians
     let momi = medianOfMedians(ar, e, p, r)
     let mval = ar[momi].p[e]
