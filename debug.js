@@ -11,7 +11,7 @@ var points = points.map(function (p) { return {x: p[0], y: p[1]} })
 
 size = [1, 1]
 points = []
-for (var i = 0; i < 1000; i++) {
+for (var i = 0; i < 50; i++) {
   points.push({x: Math.random(), y: Math.random()})
 }
 
@@ -76,14 +76,52 @@ window.debug = function(f, args) {
 
 window.debug = function(){}
 
-view.drawVerts()
-try {
-  tri.delaunay()
-} catch(e) {
-  console.log(e)
-}
-view.clear()
-view.drawVerts()
-view.drawTriangles()
-console.log(points)
+tri.delaunay()
+tri.voronoi()
+view.cx.lineWidth = 2
+view.cx.strokeStyle = 'white'
+
+let lastv
+let colors = new Map()
+tri.verts.forEach(function (v, i) {
+  colors.set(v, '#'+Math.floor(Math.random()*0xffffff).toString(16))
+})
+
+canvas.addEventListener('mousemove', function (e) {
+  let v = {
+    p: [e.offsetX / e.target.width,
+       (e.target.height - e.offsetY) / e.target.height],
+    t: null
+  }
+
+  if (!lastv) {
+    tri.verts.push(v)
+  } else {
+    tri.verts[tri.verts.indexOf(lastv)] = v
+  }
+
+  try {
+    tri.delaunay()
+    tri.voronoi()
+  } catch (e) {
+  }
+
+  lastv = v
+  view.drawVoronoi({
+    before: function (v, i) {
+      let color = colors.get(v)
+      if (v === lastv) {
+        color = 'red'
+      }
+      this.cx.fillStyle = color
+    }
+  })
+})
+
+view.drawVoronoi({
+  before: function (v, i) {
+    let color = colors.get(v)
+    this.cx.fillStyle = color
+  }
+})
 

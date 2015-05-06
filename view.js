@@ -1,4 +1,4 @@
-import { circumcenter } from './delaunay.js'
+import { ccw } from './delaunay.js'
 
 export default DelaunayCanvas
 function DelaunayCanvas(canvas, tri, size) {
@@ -12,9 +12,10 @@ function DelaunayCanvas(canvas, tri, size) {
     throw new Error('Failed to get context')
   }
 
-  // Set default canvas style
+  // Set default canvas styles
   this.cx.fillStyle = 'transparent'
   this.cx.strokeStyle = 'red'
+  this.cx.lineJoin = 'bevel'
 }
 
 DelaunayCanvas.prototype.coords = function (x, y) {
@@ -39,94 +40,102 @@ DelaunayCanvas.prototype.clear = function () {
 }
 
 DelaunayCanvas.prototype.drawDelaunay = function (opts) {
-  opts = opts || {}
-  opts.triangles = opts.triangles == null ? true : opts.triangles
-  opts.ghosts = opts.ghosts == null ? false : opts.ghosts
-  opts.verts = opts.verts == null ? true : opts.verts
-  opts.vertLabels = opts.vertLabels == null ? false : opts.vertLabels
-  opts.tree = opts.tree == null ? false : opts.tree
-
-  this.clear()
-
-  if (opts.triangles) {
-    this.drawTriangles(opts.ghosts)
-  }
-  if (opts.verts) {
-    this.drawVerts(opts.vertLabels)
-  }
-  if (opts.tree) {
-    this.drawTree()
-  }
-}
-
-DelaunayCanvas.prototype.drawVoronoi = function (opts) {
-  let tris = this.tri.tris
+  var tris = this.tri.tris
   var cx = this.cx
-  var height = this.height
   var width = this.width
-  var size = this.size
+  var height = this.height
+  var dx, dy, x, y
 
   opts = opts || {}
-  opts.triangles = opts.triangles || true
-  opts.ghosts = opts.ghosts || false
-  opts.verts = opts.verts || true
-  opts.vertLabels = opts.verts || false
-  opts.tree = opts.tree || false
+  opts.ghosts = opts.ghosts == null ? false : opts.ghosts
+  let before = opts.before || function (){}
+  let after = opts.after || function (){}
 
   this.clear()
 
   for (let i = 0, len = tris.length; i < len; i++) {
     let t = tris[i]
-    if (t.v[2] == null) {
-      continue
-    }
-    let c = { p: circumcenter(t) }
-    for (let j = 0; j < 3; j++) {
-      if (t.n[j].v[2] == null) {
-        continue
-      }
-      let nc = { p: circumcenter(t.n[j]) }
-      cx.beginPath()
-      cx.moveTo.apply(cx, this.coords(c))
-      cx.lineTo.apply(cx, this.coords(nc))
-      cx.stroke()
-    }
-  }
-}
 
-DelaunayCanvas.prototype.drawTriangles = function (ghosts) {
-  var tris = this.tri.tris
-  var cx = this.cx
-  var width = this.width
-  var height = this.height
-  var v2 = tri.v[2]
-  var dx, dy, x, y
-
-  for (var i = 0, len = tris.length; i < len; i++) {
-    if (!ghosts && tris[i].v[2] == null) {
-      continue
-    }
+    before.call(this, t, i)
 
     // if we have a ghost triangle draw it with a dashed line
-    if (v2 == null) {
-      cx.setLineDash([4])
-      dx = tri.v[1].p[0] - tri.v[0].p[0]
-      dy = tri.v[1].p[1] - tri.v[0].p[1]
+    if (t.v[2] == null) {
+      if (!opts.ghosts) {
+        continue
+      }
 
-      x = tri.v[0].p[0] + dx/2
-      y = tri.v[0].p[1] + dy/2
+      cx.setLineDash([4])
+      dx = t.v[1].p[0] - t.v[0].p[0]
+      dy = t.v[1].p[1] - t.v[0].p[1]
+
+      x = t.v[0].p[0] + dx/2
+      y = t.v[0].p[1] + dy/2
       v2 = { p: [-dy/6 + x, dx/6 + y] }
     } else {
       cx.setLineDash([])
     }
 
     cx.beginPath()
-    cx.moveTo.apply(cx, this.coords(tri.v[0]))
-    cx.lineTo.apply(cx, this.coords(tri.v[1]))
-    cx.lineTo.apply(cx, this.coords(v2))
-    cx.lineTo.apply(cx, this.coords(tri.v[0]))
-    cx.stroke()
+    cx.moveTo.apply(cx, this.coords(t.v[0]))
+    cx.lineTo.apply(cx, this.coords(t.v[1]))
+    cx.lineTo.apply(cx, this.coords(t.v[2]))
+    cx.lineTo.apply(cx, this.coords(t.v[0]))
     cx.fill()
+    cx.stroke()
+
+    after.call(this, t, i)
+  }
+}
+
+DelaunayCanvas.prototype.drawVoronoi = function (opts) {
+  let verts = this.tri.verts
+  let tris = this.tri.tris
+  let circumcenters = this.tri.circumcenters
+  var cx = this.cx
+  var height = this.height
+  var width = this.width
+  var size = this.size
+
+  opts = opts || {}
+  let before = opts.before || function (){}
+  let after = opts.after || function (){}
+
+  if (circumcenters.length === 0) {
+    this.tri.voronoi()
+  }
+
+  this.clear()
+
+  for (let i = 0, len = verts.length; i < len; i++) {
+    let v = verts[i]
+    let t = v.t
+    try {
+      t = ccw(v)
+    } catch(e) {}
+    t = t.n[(t.v.indexOf(v)+2)%3]
+    if (t.v[2] == null) {
+      continue
+    }
+
+    before.call(this, v, i)
+
+    let torig = t
+    let c = circumcenters[tri.tris.indexOf(t)]
+    cx.beginPath()
+    cx.moveTo.apply(cx, this.coords(c))
+    do {
+      t = t.n[(t.v.indexOf(v)+2)%3]
+      c = circumcenters[tri.tris.indexOf(t)]
+      if (c == null) {
+        break
+      }
+      cx.lineTo.apply(cx, this.coords(c))
+    } while (t !== torig)
+
+    cx.fill()
+    cx.stroke()
+
+    after.call(this, v, i)
   }
 }
 
@@ -138,21 +147,12 @@ DelaunayCanvas.prototype.drawVerts = function (text) {
   var ps = 3
 
   for (var i = 0, len = verts.length; i < len; i++) {
-    var [x, y] = this.coords(v)
+    var [x, y] = this.coords(verts[i])
 
     cx.fillRect(x-ps/2, y-ps/2, ps, ps)
     if (text) {
       cx.fillText('v['+i+']', x+10, y+10)
     }
-  }
-}
-
-DelaunayCanvas.prototype.drawEdge = function (v1, v2) {
-  var verts = this.tri.verts
-
-  if (typeof v1 === 'number') {
-    v1 = verts[v1]
-    v2 = verts[v2]
   }
 }
 
@@ -199,7 +199,7 @@ DelaunayCanvas.prototype.drawTree = function () {
     cx.beginPath()
     cx.moveTo.apply(cx, this.coords(l.xs[0], l.ys[0]))
     cx.lineTo.apply(cx, this.coords(l.xs[1], l.ys[1]))
-    cx.stroke()
     cx.fill()
+    cx.stroke()
   }
 }

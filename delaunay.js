@@ -35,6 +35,7 @@ function Triangulation(points) {
   })
 
   this.tris = []
+  this.circumcenters = []
 }
 
 // Helper function for printing triangles
@@ -60,8 +61,32 @@ Triangulation.prototype.tri = function (t) {
 // delaunay sorts the vertices into a 2d-tree and solves the Delaunay
 // Triangulation for those vertices
 Triangulation.prototype.delaunay = function () {
+  if (this.verts.length < 2) {
+    throw new Error('Triangulation needs at least two vertices')
+  }
+
+  this.tris = []
   sort2d(this.verts, 0, 0, this.verts.length - 1)
   this.solve(0, 0, this.verts.length - 1)
+}
+
+Triangulation.prototype.voronoi = function () {
+  let tris = this.tris
+
+  this.circumcenters = []
+
+  if (tris.length === 0) {
+    this.delaunay()
+  }
+
+  for (let i = 0, len = tris.length; i < len; i++) {
+    if (isghost(tris[i])) {
+      this.circumcenters[i] = null
+    } else {
+      this.circumcenters[i] = { p: circumcenter(tris[i]) }
+
+    }
+  }
 }
 
 // sort2d is called recursively to sort an array of vertices into a
@@ -483,7 +508,7 @@ export function ccw(v) {
   debug('ccw', arguments)
 
   var t = v.t
-  var i = 0 // detect infinite loops during debugging
+  var torig = t
   var tnext
 
   // If the vertex's triangle is already a ghost, we need to see if we
@@ -498,7 +523,7 @@ export function ccw(v) {
       return t
     }
     t = tnext
-    if (i++ > 1000) {
+    if (t === torig) {
       throw new Error('ccw called on triangle not on boundary')
     }
   } while (!isghost(t))
@@ -512,7 +537,7 @@ export function cw(v) {
   debug('cw', arguments)
 
   var t = v.t
-  var i = 0 // detect infinite loops during debugging
+  var torig = t
   var tnext
 
   // If the vertex's triangle is a ghost, we need to immediately check
@@ -527,7 +552,7 @@ export function cw(v) {
       return t
     }
     t = tnext
-    if (i++ > 1000) {
+    if (t === torig) {
       throw new Error('cw called on triangle not on boundary')
     }
   } while (!isghost(t))
