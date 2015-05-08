@@ -155,11 +155,11 @@ function verifyDelaunay(tri) {
 tests.boundary = [
   {
     it: 'finds the upper and lower convex boundary of two regions',
-    points: [  ]
+    points: []
   },
   {
     it: 'handles collinear vertices',
-    points: [  ]
+    points: []
   }
 ]
 

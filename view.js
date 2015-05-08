@@ -42,8 +42,6 @@ export default class DelaunayCanvas {
   drawDelaunay(opts) {
     let tris = this.tri.tris
     let cx = this.cx
-    let width = this.width
-    let height = this.height
     let dx, dy, x, y
 
     opts = opts || {}
@@ -98,9 +96,6 @@ export default class DelaunayCanvas {
     let tris = this.tri.tris
     let circumcenters = this.tri.circumcenters
     let cx = this.cx
-    let height = this.height
-    let width = this.width
-    let viewport = this.viewport
 
     opts = opts || {}
     opts.clear = opts.clear == null ? true : opts.clear
@@ -121,15 +116,16 @@ export default class DelaunayCanvas {
       try {
         t = ccw(v)
         t = t.n[(t.v.indexOf(v)+2)%3]
-      } catch(e) {}
-      if (t.v[2] == null) {
-        continue
+      } finally {
+        if (t.v[2] == null) {
+          continue
+        }
       }
 
       before.call(this, v, i)
 
       let torig = t
-      let c = circumcenters[tri.tris.indexOf(t)]
+      let c = circumcenters[tris.indexOf(t)]
       cx.beginPath()
       cx.moveTo.apply(cx, this.coords(c))
       do {
@@ -137,7 +133,7 @@ export default class DelaunayCanvas {
           debugger
         }
         t = t.n[(t.v.indexOf(v)+2)%3]
-        c = circumcenters[tri.tris.indexOf(t)]
+        c = circumcenters[tris.indexOf(t)]
         if (c == null) {
           break
         }
@@ -145,7 +141,7 @@ export default class DelaunayCanvas {
       } while (t !== torig)
 
       if (c == null) {
-        c = circumcenters[tri.tris.indexOf(torig)]
+        c = circumcenters[tris.indexOf(torig)]
         cx.lineTo.apply(cx, this.coords(c))
       }
 
@@ -159,8 +155,6 @@ export default class DelaunayCanvas {
   drawVerts(text) {
     let verts = this.tri.verts
     let cx = this.cx
-    let width = this.width
-    let height = this.height
     let ps = 3
 
     for (let i = 0, len = verts.length; i < len; i++) {
@@ -175,8 +169,6 @@ export default class DelaunayCanvas {
 
   drawTree() {
     let cx = this.cx
-    let height = this.height
-    let width = this.width
     let viewport = this.viewport
     let verts = this.tri.verts
     let lines = []

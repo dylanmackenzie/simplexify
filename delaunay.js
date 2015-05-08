@@ -48,11 +48,11 @@ export default class Triangulation {
     let s = t.v.map(vertLookup).toString()
 
     s += ' --> '
-    s += t.n.map(function (t) {
-      if (t == null) {
+    s += t.n.map(function (tn) {
+      if (tn == null) {
         return 'null'
       }
-      return t.v.map(vertLookup).toString()
+      return tn.v.map(vertLookup).toString()
     }).join('; ')
 
     return s
@@ -384,7 +384,7 @@ export function flip(t, i) {
     t.v[i2] = tmp
     let tmpi = i1
     i1 = i2
-    i2 = tmp
+    i2 = tmpi
   }
   if (cross(u.v[j], u.v[j1], u.v[j2]) > 0) {
     let tmp = u.v[j1]
@@ -392,7 +392,7 @@ export function flip(t, i) {
     u.v[j2] = tmp
     let tmpj = j1
     j1 = j2
-    j2 = tmp
+    j2 = tmpj
   }
 
   // change ownership of vertices if needed

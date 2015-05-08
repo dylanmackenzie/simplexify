@@ -43,7 +43,8 @@ export function partition(ar, e, p, r) {
     }
   }
 
-  return insertionSort(ar, e, p, r)
+  insertionSort(ar, e, p, r)
+  return
 }
 
 // selectMedian returns the index of the median of an array using the
@@ -92,7 +93,7 @@ function swap(ar, i, j) {
 // discriminant
 function insertionSort(ar, e, p, r) {
   for (let i = p+1; i <= r; ++i) {
-    for (let j = i; j > p && ar[j-1].p[e] > ar[j].p[e]; --j)  {
+    for (let j = i; j > p && ar[j-1].p[e] > ar[j].p[e]; --j) {
       let tmp = ar[j]
       ar[j] = ar[j-1]
       ar[j-1] = tmp

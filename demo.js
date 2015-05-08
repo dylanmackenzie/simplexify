@@ -20,7 +20,7 @@ view.cx.strokeStyle = 'white'
 
 let lastv = tri.verts[0]
 let colors = window.colors = new WeakMap()
-tri.verts.forEach(function (v, i) {
+tri.verts.forEach(function (v) {
   let r = Math.floor(Math.random()*0x2f+0x40).toString(16)
   let g = Math.floor(Math.random()*0x2f+0x30).toString(16)
   let b = Math.floor(Math.random()*0x2f+0x90).toString(16)
@@ -29,7 +29,7 @@ tri.verts.forEach(function (v, i) {
 })
 
 canvas.addEventListener('mousemove', function (e) {
-  lastv.p[0] = e.offsetX / e.target.width,
+  lastv.p[0] = e.offsetX / e.target.width
   lastv.p[1] = (e.target.height - e.offsetY) / e.target.height
   lastv.p[0] = lastv.p[0] * view.viewport[2] + view.viewport[0]
   lastv.p[1] = lastv.p[1] * view.viewport[3] + view.viewport[1]
@@ -38,7 +38,7 @@ canvas.addEventListener('mousemove', function (e) {
   tri.voronoi()
 
   view.drawVoronoi({
-    before: function (v, i) {
+    before: function (v) {
       let color = 'red'
       if (colors.has(v)) {
         color = colors.get(v)
@@ -49,7 +49,7 @@ canvas.addEventListener('mousemove', function (e) {
 })
 
 view.drawVoronoi({
-  before: function (v, i) {
+  before: function (v) {
     let color = colors.get(v)
     this.cx.fillStyle = color
   }
