@@ -1,43 +1,45 @@
 var gulp = require('gulp')
-var mocha = require('gulp-mocha')
 var babel = require('gulp-babel')
 var browserify = require('browserify')
 var connect = require('gulp-connect')
 var source = require('vinyl-source-stream')
 
 gulp.task('compile', function () {
-  return gulp.src('*.js')
+  return gulp.src(['*.js', 'test/*.test.js', 'test/reporter.js', '!Gulpfile.js'])
     .pipe(babel())
     .pipe(gulp.dest('es5/'))
 })
 
-gulp.task('browserify', ['compile'], function () {
+gulp.task('builddemo', ['compile'], function () {
   return browserify({
       basedir: 'es5/',
-      entries: './debug.js'
+      entries: './demo.js'
     }).bundle()
     .pipe(source('bundle.js'))
     .pipe(gulp.dest('es5/'))
 })
 
-gulp.task('test', ['compile'], function () {
-  var spawn = require('child_process').spawn
-  spawn('mocha', ['es5/delaunay.test.js', 'es5/median.test.js'].concat(process.argv.slice(3)), {stdio: 'inherit'})
+gulp.task('buildtest', ['compile'], function () {
+  return browserify({
+      basedir: 'es5/',
+      entries: ['./median.test.js', './delaunay.test.js']
+    }).bundle()
+    .pipe(source('test.js'))
+    .pipe(gulp.dest('es5/'))
 })
 
-gulp.task('debug', ['compile'], function () {
-  var spawn = require('child_process').spawn
-  spawn('mocha', ['--debug-brk', 'es5/delaunay.test.js', 'es5/median.test.js'].concat(process.argv.slice(3)), {stdio: 'inherit'})
-})
-
-gulp.task('browser', ['browserify'], function () {
+gulp.task('server', function () {
   connect.server({
     port: 8888
   })
 })
 
-gulp.task('watch', function () {
-  gulp.watch('*.js', ['browserify'])
+gulp.task('demo', ['builddemo', 'server'], function () {
+  gulp.watch(['*.js', '!Gulpfile.js'], ['builddemo'])
 })
 
-gulp.task('default', ['browser', 'watch'])
+gulp.task('test', ['buildtest', 'server'], function () {
+  gulp.watch(['*.js', 'test/*.test.js', '!Gulpfile.js'], ['buildtest'])
+})
+
+gulp.task('default', ['test'])

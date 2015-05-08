@@ -123,7 +123,7 @@ Triangulation.prototype.solve = function (j, p, r) {
     return
   }
 
-  // TODO: check for colinearity
+  // TODO: Handle Collinear vertices
   var cp
   if (r - p === 2) {
     // order points in ccw fashion
@@ -133,7 +133,17 @@ Triangulation.prototype.solve = function (j, p, r) {
     } else if (cp > 0) {
       this.createTriangle(verts[p], verts[r], verts[p+1])
     } else {
-      throw new Error('colinear vertices')
+      // throw new Error('Collinear vertices')
+      if (angle(verts[p], verts[p+1], verts[r]) > π/2) {
+        this.createTriangle(verts[p], verts[p+1])
+        this.createTriangle(verts[p+1], verts[r])
+      } else if (angle(verts[p], verts[r], verts[p+1]) > π/2) {
+        this.createTriangle(verts[p], verts[r])
+        this.createTriangle(verts[r], verts[p+1])
+      } else {
+        this.createTriangle(verts[p+1], verts[p])
+        this.createTriangle(verts[p], verts[r])
+      }
     }
 
     return
@@ -284,12 +294,12 @@ Triangulation.prototype.merge = function (j, lp, lr, rp, rr) {
     useLeftGhost = rangle > langle
     if (useLeftGhost) {
       lrangle = angle(vl1, vr0, vl0)
-      if (lrangle > rangle) {
+      if (lrangle >= rangle) {
         useLeftGhost = false
       }
     } else {
       lrangle = angle(vr0, vl0, vr1)
-      if (lrangle > langle) {
+      if (lrangle >= langle) {
         useLeftGhost = true
       }
     }
@@ -659,7 +669,6 @@ export function boundary(ar, j, lp, lr, rp, rr) {
     }
 
     if (++check === 2) {
-      debug('boundary done', [ar.indexOf(l), ar.indexOf(r)])
       return [l, r]
     }
 
@@ -673,7 +682,6 @@ export function boundary(ar, j, lp, lr, rp, rr) {
     }
 
     if (++check === 2) {
-      debug('boundary done', [ar.indexOf(l), ar.indexOf(r)])
       return [l, r]
     }
   }
@@ -683,7 +691,10 @@ function findMin(ar, j, e, p, r) {
   var i, pos, min, minPos = Infinity
   for (i = p; i <= r; i++) {
     pos = ar[i].p[e]
-    if (pos < minPos) {
+    if (pos <= minPos) {
+      if (pos === minPos && ar[i].p[1-e] < min.p[1-e]) {
+        continue
+      }
       minPos = pos
       min = ar[i]
     }
@@ -696,7 +707,10 @@ function findMax(ar, j, e, p, r) {
   var i, pos, max, maxPos = -Infinity
   for (i = p; i <= r; i++) {
     pos = ar[i].p[e]
-    if (pos > maxPos) {
+    if (pos >= maxPos) {
+      if (pos === maxPos && ar[i].p[1-e] < max.p[1-e]) {
+        continue
+      }
       maxPos = pos
       max = ar[i]
     }

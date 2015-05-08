@@ -1,0 +1,80 @@
+import View from './view'
+import Triangulation from './delaunay'
+
+var canvas = document.querySelector('canvas')
+
+var viewport = [.15, .15, .7, .7]
+var points = []
+for (var i = 0; i < 400; i++) {
+  points.push({x: Math.random(), y: Math.random()})
+}
+var tri = window.tri = new Triangulation(points)
+var view = window.view = new View(canvas, tri, viewport)
+
+window.checkNeighbors = function () {
+  tri.tris.forEach(function (t) {
+    if (t.v[2] == null) {
+      return
+    }
+    t.n.forEach(function (ne) {
+      if (ne == null) {
+        return
+      }
+      let count = 0
+      t.v.forEach(function (v) {
+        if (ne.v.indexOf(v) < 0) {
+          count++
+        }
+      })
+      if (count !== 1) {
+        console.log('Error in ' + tri.tri(t))
+      }
+    })
+  })
+}
+
+
+window.debug = function(){}
+
+tri.delaunay()
+tri.voronoi()
+view.cx.lineWidth = 2
+view.cx.strokeStyle = 'white'
+
+let lastv = tri.verts[0]
+let colors = window.colors = new WeakMap()
+tri.verts.forEach(function (v, i) {
+  let r = Math.floor(Math.random()*0x2f+0x40).toString(16)
+  let g = Math.floor(Math.random()*0x2f+0x30).toString(16)
+  let b = Math.floor(Math.random()*0x2f+0x90).toString(16)
+  let color = ('00'+r).slice(-2) + ('00'+g).slice(-2) + ('00'+b).slice(-2)
+  colors.set(v, '#'+color)
+})
+
+canvas.addEventListener('mousemove', function (e) {
+  lastv.p[0] = e.offsetX / e.target.width,
+  lastv.p[1] = (e.target.height - e.offsetY) / e.target.height
+  lastv.p[0] = lastv.p[0] * view.viewport[2] + view.viewport[0]
+  lastv.p[1] = lastv.p[1] * view.viewport[3] + view.viewport[1]
+
+  tri.delaunay()
+  tri.voronoi()
+
+  view.drawVoronoi({
+    before: function (v, i) {
+      let color = 'red'
+      if (colors.has(v)) {
+        color = colors.get(v)
+      }
+      this.cx.fillStyle = color
+    }
+  })
+})
+
+view.drawVoronoi({
+  before: function (v, i) {
+    let color = colors.get(v)
+    this.cx.fillStyle = color
+  }
+})
+

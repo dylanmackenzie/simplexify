@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <title>Delaunay Test Suite</title>
+    <link rel='stylesheet' media='all' href='test/mocha.css'>
+</head>
+<body>
+    <div id='mocha'><p><a href='.'>Index</a></p></div>
+    <div id='messages'></div>
+    <div id='fixtures'></div>
+
+    <script src='test/mocha.js'></script>
+    <script>mocha.setup('bdd')</script>
+    <script src='es5/test.js'></script>
+    <script>
+      window.debug = function(f, args) {
+        switch (f) {
+          case 'boundary':
+          case 'boundary done':
+            break
+          case 'merge step':
+          case 'merge':
+            if (!window.curView) break
+            curView.drawDelaunay({ ghosts: true })
+            debugger
+            break
+          case 'ccwghost':
+          case 'cwghost':
+            break
+          case 'mateghost':
+            if (!window.curView) break
+            curView.drawDelaunay({ ghosts: true })
+            break
+          case 'flipP2':
+          case 'flipP4':
+            break
+          case 'flip':
+            if (!window.curView) break
+            curView.drawDelaunay({ ghosts: true })
+            debugger
+            break
+        }
+      }
+
+      DelaunayReporter.prototype = Object.create(Mocha.reporters.HTML.prototype)
+      function DelaunayReporter(runner) {
+        Mocha.reporters.HTML.call(this, runner);
+
+        var self = this,
+          report = document.getElementById('mocha-report');
+
+        runner.on('test', function (test) {
+          if (test.parent.title === 'delaunay') {
+            var el = report.children[report.children.length - 1];
+            el = el.querySelector('ul')
+            var canvas = document.createElement('canvas');
+            el.appendChild(canvas);
+            test.ctx.canvas = canvas
+          }
+        });
+      }
+
+      mocha.reporter(DelaunayReporter)
+      mocha.run()
+    </script>
+</body>
+</html>

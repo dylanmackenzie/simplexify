@@ -1,12 +1,12 @@
 import { ccw } from './delaunay.js'
 
 export default DelaunayCanvas
-function DelaunayCanvas(canvas, tri, size) {
+function DelaunayCanvas(canvas, tri, viewport) {
   this.canvas = canvas
   this.height = canvas.height
   this.width = canvas.width
   this.tri = tri
-  this.size = size
+  this.viewport = viewport
   var cx = this.cx = canvas.getContext('2d')
   if (cx == null) {
     throw new Error('Failed to get context')
@@ -21,8 +21,8 @@ function DelaunayCanvas(canvas, tri, size) {
 DelaunayCanvas.prototype.coords = function (x, y) {
   var height = this.height
   var width = this.width
-  var size = this.size
-  var scale = [width / size[0], height / size[1]]
+  var viewport = this.viewport
+  var scale = [width / viewport[2], height / viewport[3]]
 
   if (y == null) {
     y = x.p[1]
@@ -30,8 +30,8 @@ DelaunayCanvas.prototype.coords = function (x, y) {
   }
 
   return [
-    x * scale[0],
-    height - (y * scale[1])
+    (x - viewport[0]) * scale[0],
+    height - ((y - viewport[1]) * scale[1])
   ]
 }
 
@@ -47,19 +47,24 @@ DelaunayCanvas.prototype.drawDelaunay = function (opts) {
   var dx, dy, x, y
 
   opts = opts || {}
+  opts.clear = opts.clear == null ? true : opts.clear
   opts.ghosts = opts.ghosts == null ? false : opts.ghosts
   let before = opts.before || function (){}
   let after = opts.after || function (){}
 
-  this.clear()
+  if (opts.clear) {
+    this.clear()
+  }
 
   for (let i = 0, len = tris.length; i < len; i++) {
     let t = tris[i]
+    let v2 = t.v[2]
 
     before.call(this, t, i)
 
     // if we have a ghost triangle draw it with a dashed line
-    if (t.v[2] == null) {
+
+    if (v2 == null) {
       if (!opts.ghosts) {
         continue
       }
@@ -71,17 +76,18 @@ DelaunayCanvas.prototype.drawDelaunay = function (opts) {
       x = t.v[0].p[0] + dx/2
       y = t.v[0].p[1] + dy/2
       v2 = { p: [-dy/6 + x, dx/6 + y] }
-    } else {
-      cx.setLineDash([])
     }
-
     cx.beginPath()
     cx.moveTo.apply(cx, this.coords(t.v[0]))
     cx.lineTo.apply(cx, this.coords(t.v[1]))
-    cx.lineTo.apply(cx, this.coords(t.v[2]))
+    cx.lineTo.apply(cx, this.coords(v2))
     cx.lineTo.apply(cx, this.coords(t.v[0]))
     cx.fill()
     cx.stroke()
+
+    if (t.v[2] == null) {
+      cx.setLineDash([])
+    }
 
     after.call(this, t, i)
   }
@@ -94,9 +100,10 @@ DelaunayCanvas.prototype.drawVoronoi = function (opts) {
   var cx = this.cx
   var height = this.height
   var width = this.width
-  var size = this.size
+  var viewport = this.viewport
 
   opts = opts || {}
+  opts.clear = opts.clear == null ? true : opts.clear
   let before = opts.before || function (){}
   let after = opts.after || function (){}
 
@@ -104,15 +111,17 @@ DelaunayCanvas.prototype.drawVoronoi = function (opts) {
     this.tri.voronoi()
   }
 
-  this.clear()
+  if (opts.clear) {
+    this.clear()
+  }
 
   for (let i = 0, len = verts.length; i < len; i++) {
     let v = verts[i]
     let t = v.t
     try {
       t = ccw(v)
+      t = t.n[(t.v.indexOf(v)+2)%3]
     } catch(e) {}
-    t = t.n[(t.v.indexOf(v)+2)%3]
     if (t.v[2] == null) {
       continue
     }
@@ -124,6 +133,9 @@ DelaunayCanvas.prototype.drawVoronoi = function (opts) {
     cx.beginPath()
     cx.moveTo.apply(cx, this.coords(c))
     do {
+      if (t.v.indexOf(v) < 0) {
+        debugger
+      }
       t = t.n[(t.v.indexOf(v)+2)%3]
       c = circumcenters[tri.tris.indexOf(t)]
       if (c == null) {
@@ -131,6 +143,11 @@ DelaunayCanvas.prototype.drawVoronoi = function (opts) {
       }
       cx.lineTo.apply(cx, this.coords(c))
     } while (t !== torig)
+
+    if (c == null) {
+      c = circumcenters[tri.tris.indexOf(torig)]
+      cx.lineTo.apply(cx, this.coords(c))
+    }
 
     cx.fill()
     cx.stroke()
@@ -160,7 +177,7 @@ DelaunayCanvas.prototype.drawTree = function () {
   var cx = this.cx
   var height = this.height
   var width = this.width
-  var size = this.size
+  var viewport = this.viewport
   var verts = this.tri.verts
   var lines = []
 
@@ -191,7 +208,7 @@ DelaunayCanvas.prototype.drawTree = function () {
   }
 
   // initiate recursion
-  getTree(verts, 0, 0, verts.length-1, 0, size[0], size[1], 0)
+  getTree(verts, 0, 0, verts.length-1, 0, viewport[2], viewport[3], 0)
 
   var l
   for (var i = 0, len = lines.length; i < len; i++) {
