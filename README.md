@@ -1,6 +1,8 @@
 Simplexify
 ==========
 
+![](https://github.com/github/dylanmackenzie/simplexify/master/gh-pages/animated-voronoi.gif)
+
 Simplexify implements a [divide-and-conquer
 algorithm](http://link.springer.com/article/10.1007%2Fs12541-011-0056-1)
 for calculating a Delaunay triangulation (and Voronoi diagram) in Javascript. It
