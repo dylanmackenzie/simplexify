@@ -112,14 +112,15 @@ export default class CanvasView {
 
     for (let i = 0, len = verts.length; i < len; i++) {
       let v = verts[i]
-      let t = v.t
-      try {
-        t = ccw(v)
+      let t = ccw(v)
+      if (t == null) {
+        t = v.t
+      } else {
         t = t.n[(t.v.indexOf(v)+2)%3]
-      } finally {
-        if (t.v[2] == null) {
-          continue
-        }
+      }
+
+      if (t.v[2] == null) {
+        continue
       }
 
       before.call(this, v, i)

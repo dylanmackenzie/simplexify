@@ -536,7 +536,7 @@ export function ccw(v) {
     }
     t = tnext
     if (t === torig) {
-      throw new Error('ccw called on triangle not on boundary')
+      return null
     }
   } while (!isghost(t))
 
@@ -565,7 +565,7 @@ export function cw(v) {
     }
     t = tnext
     if (t === torig) {
-      throw new Error('cw called on triangle not on boundary')
+      return null
     }
   } while (!isghost(t))
 
