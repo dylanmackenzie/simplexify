@@ -11,29 +11,6 @@ for (let i = 0; i < 400; i++) {
 let tri = window.tri = new Triangulation(points)
 let view = window.view = new View(canvas, tri, viewport)
 
-window.checkNeighbors = function () {
-  tri.tris.forEach(function (t) {
-    if (t.v[2] == null) {
-      return
-    }
-    t.n.forEach(function (ne) {
-      if (ne == null) {
-        return
-      }
-      let count = 0
-      t.v.forEach(function (v) {
-        if (ne.v.indexOf(v) < 0) {
-          count++
-        }
-      })
-      if (count !== 1) {
-        console.log('Error in ' + tri.tri(t))
-      }
-    })
-  })
-}
-
-
 window.debug = function(){}
 
 tri.delaunay()

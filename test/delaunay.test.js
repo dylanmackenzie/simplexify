@@ -167,6 +167,27 @@ describe('boundary', function () {
 
 })
 
+function checkNeighbors(tri) {
+  tri.tris.forEach(function (t) {
+    if (t.v[2] == null) {
+      return
+    }
+    t.n.forEach(function (ne) {
+      if (ne == null) {
+        return
+      }
+      let count = 0
+      t.v.forEach(function (v) {
+        if (ne.v.indexOf(v) < 0) {
+          count++
+        }
+      })
+
+      assert.ok(count === 1, 'Improper neighbors: ' + tri.tri(t))
+    })
+  })
+}
+
 tests.delaunay = [
   {
     it: 'creates a delaunay triangulation on a set of vertices',
@@ -201,6 +222,7 @@ describe('delaunay', function () {
       }
       tri.delaunay()
       assert.ok(verifyDelaunay(tri), 'Triangulation not delaunay')
+      checkNeighbors(tri)
     })
   })
 })
