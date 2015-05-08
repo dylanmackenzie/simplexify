@@ -4,7 +4,7 @@ import Triangulation, * as del from './delaunay'
 import View from './view.js'
 import assert from 'assert'
 
-var tests = {}
+let tests = {}
 
 function verify2dTree(ar, j, p, r) {
   if (r === p) {
@@ -42,9 +42,9 @@ tests.sort2d = [
 
 describe('sort2d', function () {
   it('should sort an unordered array of vertices into a 2d tree', function () {
-    var cases = tests.sort2d
+    let cases = tests.sort2d
     cases.forEach(function (test) {
-      var verts = test.points.map(p => ({ p }))
+      let verts = test.points.map(p => ({ p }))
       it(test.it, function () {
         del.sort2d(verts, 0, 0, verts.length - 1)
         assert.ok(verify2dTree, '2d tree not in correct order')

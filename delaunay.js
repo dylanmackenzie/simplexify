@@ -4,7 +4,7 @@ import { partition } from './median'
 
 const π = Math.PI
 
-var global = (1, eval)('this')
+let global = (1, eval)('this')
 if (!global.debug) {
   global.debug = function () {}
 }
@@ -26,66 +26,311 @@ if (!global.debug) {
 //
 // tree is a flattened 2d tree used for efficiently selecting which
 // groups to merge
-export default Triangulation
-function Triangulation(points) {
+export default class Triangulation {
 
-  var verts = this.verts = new Array(points.length)
-  points.forEach(function (p, i) {
-    verts[i] = { p: [p.x, p.y], t: null }
-  })
+  constructor(points) {
+    let verts = this.verts = new Array(points.length)
+    points.forEach(function (p, i) {
+      verts[i] = { p: [p.x, p.y], t: null }
+    })
 
-  this.tris = []
-  this.circumcenters = []
-}
-
-// Helper function for printing triangles
-Triangulation.prototype.tri = function (t) {
-  let verts = this.verts
-  let vertLookup = function vertString(v) {
-    return verts.indexOf(v)
+    this.tris = []
+    this.circumcenters = []
   }
 
-  let s = t.v.map(vertLookup).toString()
-
-  s += ' --> '
-  s += t.n.map(function (t) {
-    if (t == null) {
-      return 'null'
+  // Helper function for printing triangles
+  tri(t) {
+    let verts = this.verts
+    let vertLookup = function vertString(v) {
+      return verts.indexOf(v)
     }
-    return t.v.map(vertLookup).toString()
-  }).join('; ')
 
-  return s
-}
+    let s = t.v.map(vertLookup).toString()
 
-// delaunay sorts the vertices into a 2d-tree and solves the Delaunay
-// Triangulation for those vertices
-Triangulation.prototype.delaunay = function () {
-  if (this.verts.length < 2) {
-    throw new Error('Triangulation needs at least two vertices')
+    s += ' --> '
+    s += t.n.map(function (t) {
+      if (t == null) {
+        return 'null'
+      }
+      return t.v.map(vertLookup).toString()
+    }).join('; ')
+
+    return s
   }
 
-  this.tris = []
-  sort2d(this.verts, 0, 0, this.verts.length - 1)
-  this.solve(0, 0, this.verts.length - 1)
-}
+  // delaunay sorts the vertices into a 2d-tree and solves the Delaunay
+  // Triangulation for those vertices.
+  delaunay() {
+    if (this.verts.length < 2) {
+      throw new Error('Triangulation needs at least two vertices')
+    }
 
-Triangulation.prototype.voronoi = function () {
-  let tris = this.tris
-
-  this.circumcenters = []
-
-  if (tris.length === 0) {
-    this.delaunay()
+    this.tris = []
+    sort2d(this.verts, 0, 0, this.verts.length - 1)
+    this.solve(0, 0, this.verts.length - 1)
   }
 
-  for (let i = 0, len = tris.length; i < len; i++) {
-    if (isghost(tris[i])) {
-      this.circumcenters[i] = null
+  // voronoi computes the circumcenters of every triangle in the
+  // triangulation. It calls delaunay() if no triangles exist.
+  voronoi() {
+    let tris = this.tris
+
+    this.circumcenters = []
+
+    if (tris.length === 0) {
+      this.delaunay()
+    }
+
+    for (let i = 0, len = tris.length; i < len; i++) {
+      if (isghost(tris[i])) {
+        this.circumcenters[i] = null
+      } else {
+        this.circumcenters[i] = { p: circumcenter(tris[i]) }
+
+      }
+    }
+  }
+
+  // solve is the recursive function actually responsible for computing
+  // the triangulation
+  solve(j, p, r) {
+    let verts = this.verts
+
+    debug('solve', arguments)
+
+    if (r - p === 1) {
+      this.createTriangle(verts[p], verts[r])
+      return
+    }
+
+    // TODO: Handle Collinear vertices
+    if (r - p === 2) {
+      // order points in ccw fashion
+      let cp = cross(verts[p], verts[p+1], verts[r])
+      if (cp < 0) {
+        this.createTriangle(verts[p], verts[p+1], verts[r])
+      } else if (cp > 0) {
+        this.createTriangle(verts[p], verts[r], verts[p+1])
+      } else {
+        // throw new Error('Collinear vertices')
+        if (angle(verts[p], verts[p+1], verts[r]) > π/2) {
+          this.createTriangle(verts[p], verts[p+1])
+          this.createTriangle(verts[p+1], verts[r])
+        } else if (angle(verts[p], verts[r], verts[p+1]) > π/2) {
+          this.createTriangle(verts[p], verts[r])
+          this.createTriangle(verts[r], verts[p+1])
+        } else {
+          this.createTriangle(verts[p+1], verts[p])
+          this.createTriangle(verts[p], verts[r])
+        }
+      }
+
+      return
+    }
+
+    let q = (r+p) >> 1
+
+    this.solve(j+1, p, q)
+    this.solve(j+1, q+1, r)
+
+    // flip sides for merges at odd depths to ensure consistency in
+    // algorithms using cw and ccw
+    if (j & 1) {
+      this.merge(j, q+1, r, p, q)
     } else {
-      this.circumcenters[i] = { p: circumcenter(tris[i]) }
-
+      this.merge(j, p, q, q+1, r)
     }
+  }
+
+  // createTriangle creates a new triangle from a raw set of vertices. It
+  // is used only in the base case of the recursive merge. The vertices
+  // must be passed in in ccw order, and the neighbors will be populated
+  // with ghost triangles
+  createTriangle(v0, v1, v2) {
+    // t refers to the real triangle (the one with no null vertices)
+    let t, t1, t2, t3
+
+    debug('createTriangle', arguments)
+
+    if (v2 == null) {
+      t1 = this.createGhost(v0, v1)
+      t2 = this.createGhost(v1, v0)
+      v0.t = v1.t = t1
+      t1.n[0] = t1.n[1] = t1.n[2] = t2
+      t2.n[0] = t2.n[1] = t2.n[2] = t1
+    } else /* full triangle */ {
+      t = {v: [v0, v1, v2], n: new Array(3)}
+      t1 = this.createGhost(v1, v0)
+      t2 = this.createGhost(v2, v1)
+      t3 = this.createGhost(v0, v2)
+      v0.t = v1.t = v2.t = t
+      t1.n[2] = t2.n[2] = t3.n[2] = t
+      t.n[0] = t2
+      t.n[1] = t3
+      t.n[2] = t1
+      t1.n[0] = t2.n[1] = t3
+      t2.n[0] = t3.n[1] = t1
+      t3.n[0] = t1.n[1] = t2
+      this.tris.push(t)
+    }
+  }
+
+  createGhost(v0, v1) {
+    debug('createGhost', arguments)
+
+    let t = {v: [v0, v1, null], n: new Array(3)}
+    this.tris.push(t)
+
+    return t
+  }
+
+  // merge merges the vertices specified by ls and the ones specified by
+  // rs into a delaunay triangulation.
+  merge(j, lp, lr, rp, rr) {
+    debug('merge', arguments)
+
+    let verts = this.verts
+
+    // topl and topr contain the vertices of the upper convex boundary
+    // vl0 and vr0 are the vertices making up the current base edge. These
+    // will be changed to reflect the new base edge as they move up
+    let [vl0, vr0] = boundary(verts, j, lp, lr, rp, rr)
+    let [topr, topl] = boundary(verts, j, rp, rr, lp, lr)
+
+    // Create ghost triangles on convex boundaries. tb will be constantly
+    // updated as the merge moves upwards, ttop is only used at the end
+    // when it is stored in the neighbor list of the last merged triangle.
+    let tb = this.createGhost(vr0, vl0)
+    let ttop = this.createGhost(topl, topr)
+    let ttmp
+
+    if (tb.v[1] === ttop.v[0]) {
+      tb.n[0] = ttop
+      ttop.n[1] = tb
+    } else {
+      ttmp = ccw(vl0)
+      ttmp.n[1] = tb
+      tb.n[0] = ttmp
+      ttmp = cw(topl)
+      ttmp.n[0] = ttop
+      ttop.n[1] = ttmp
+    }
+
+    if (tb.v[0] === ttop.v[1]) {
+      tb.n[1] = ttop
+      ttop.n[0] = tb
+    } else {
+      ttmp = cw(vr0)
+      ttmp.n[0] = tb
+      tb.n[1] = ttmp
+      ttmp = ccw(topr)
+      ttmp.n[1] = ttop
+      ttop.n[0] = ttmp
+    }
+
+    // vl1 and vr1 are the cantidate vertices for the next merge step
+    let vl1, vr1
+
+    // tl and tr are ghost triangles which connect vl1 and vr1 to the base
+    // vertices
+    let tl = cw(vl0)
+    let tr = ccw(vr0)
+
+    // t is the triangle that has been newly created by the merge
+    // iteration. It is the starting point for flip propagation
+    let t
+
+    // useLeftGhost is a boolean which decides which region we use in the
+    // next phase of the merge we. The rest are temporary storage for
+    // computing useLeftGhost
+    let useLeftGhost, langle, rangle, lrangle
+
+    // Move upward between the regions, merging them as we go. Exit when
+    // we reach the top edge
+    while (!(vl0 === topl && vr0 === topr)) {
+      debug('merge step', [verts.indexOf(vl0), verts.indexOf(vr0)])
+
+      // tl and tr are the ghost triangles which can be mated with the
+      // opposite region
+      // set vl1 and vr1 to the other vertex of the cantidate ghost
+      // triangle
+      vl1 = tl.v[0]
+      vr1 = tr.v[1]
+
+      // Merge using the cantidate vertex with the lowest angle above the
+      // line connecting the two base vertices (we want to pick the o in
+      // the following diagram):
+      //       vl1
+      //        x
+      //       /  .
+      //      / vr1 .
+      //     /    o_  .
+      //    /       ———_.
+      //   .------------——.
+      //  vl0            vr0
+      rangle = angle(vr1, vr0, vl0)
+      langle = angle(vr0, vl0, vl1)
+      useLeftGhost = rangle > langle
+      if (useLeftGhost) {
+        lrangle = angle(vl1, vr0, vl0)
+        if (lrangle >= rangle) {
+          useLeftGhost = false
+        }
+      } else {
+        lrangle = angle(vr0, vl0, vr1)
+        if (lrangle >= langle) {
+          useLeftGhost = true
+        }
+      }
+
+      if (useLeftGhost) {
+        // mate the left ghost with the right base vertex
+        t = mateghost(tl, vr0, tb)
+        t.n[1] = null
+
+        // Move base up by one vertex
+        vl0 = vl1
+        tl = cw(vl0)
+
+        flipP4(t, 2, t.v[0], t.v[1], t.v[2])
+        flipP4(t, 1, t.v[0], t.v[1], t.v[2])
+        flipP4(t, 0, t.v[0], t.v[1], t.v[2])
+
+        t = ccw(vl0)
+
+      } else /* right triangle */{
+        // mate the right ghost with the left base vertex
+        t = mateghost(tr, vl0, tb)
+        t.n[0] = null
+
+        // Move base up by one vertex and go to next ghost triangle
+        vr0 = vr1
+        tr = ccw(vr0)
+
+        flipP4(t, 2, t.v[0], t.v[1], t.v[2])
+        flipP4(t, 1, t.v[0], t.v[1], t.v[2])
+        flipP4(t, 0, t.v[0], t.v[1], t.v[2])
+
+        t = cw(vr0)
+      }
+
+      // update the relevant trangles for next merge step
+      tb = t
+    }
+
+    // We are now at the top of the merge so add the ghost triangle at the
+    // upper convex boundary to the neighbors of t and propagate flips to
+    // complete the merge
+    ttop.n[2] = t
+    for (let i = 0; i < 3; i++) {
+      if (ttop.v.indexOf(t.v[i]) < 0) {
+        t.n[i] = ttop
+        break
+      }
+    }
+    flipP4(t, 2, t.v[0], t.v[1], t.v[2])
+    flipP4(t, 1, t.v[0], t.v[1], t.v[2])
+    flipP4(t, 0, t.v[0], t.v[1], t.v[2])
   }
 }
 
@@ -100,8 +345,8 @@ export function sort2d(ar, j, p, r) {
   debug('sort2d', arguments)
 
   // q is the index of the midpoint of the array
-  var q = (p+r) >> 1
-  var e = j & 1
+  let q = (p+r) >> 1
+  let e = j & 1
 
   // partition the subset of the array around its median
   partition(ar, e, p, r)
@@ -111,265 +356,22 @@ export function sort2d(ar, j, p, r) {
   sort2d(ar, j+1, q+1, r)
 }
 
-// solve is the recursive function actually responsible for computing
-// the triangulation
-Triangulation.prototype.solve = function (j, p, r) {
-  var verts = this.verts
-
-  debug('solve', arguments)
-
-  if (r - p === 1) {
-    this.createTriangle(verts[p], verts[r])
-    return
-  }
-
-  // TODO: Handle Collinear vertices
-  var cp
-  if (r - p === 2) {
-    // order points in ccw fashion
-    cp = cross(verts[p], verts[p+1], verts[r])
-    if (cp < 0) {
-      this.createTriangle(verts[p], verts[p+1], verts[r])
-    } else if (cp > 0) {
-      this.createTriangle(verts[p], verts[r], verts[p+1])
-    } else {
-      // throw new Error('Collinear vertices')
-      if (angle(verts[p], verts[p+1], verts[r]) > π/2) {
-        this.createTriangle(verts[p], verts[p+1])
-        this.createTriangle(verts[p+1], verts[r])
-      } else if (angle(verts[p], verts[r], verts[p+1]) > π/2) {
-        this.createTriangle(verts[p], verts[r])
-        this.createTriangle(verts[r], verts[p+1])
-      } else {
-        this.createTriangle(verts[p+1], verts[p])
-        this.createTriangle(verts[p], verts[r])
-      }
-    }
-
-    return
-  }
-
-  var q = (r+p) >> 1
-
-  this.solve(j+1, p, q)
-  this.solve(j+1, q+1, r)
-
-  // flip sides for merges at odd depths to ensure consistency in
-  // algorithms using cw and ccw
-  if (j & 1) {
-    this.merge(j, q+1, r, p, q)
-  } else {
-    this.merge(j, p, q, q+1, r)
-  }
-}
-
-// createTriangle creates a new triangle from a raw set of vertices. It
-// is used only in the base case of the recursive merge. The vertices
-// must be passed in in ccw order, and the neighbors will be populated
-// with ghost triangles
-Triangulation.prototype.createTriangle = function (v0, v1, v2) {
-  // t refers to the real triangle (the one with no null vertices)
-  var t, t1, t2, t3
-
-  debug('createTriangle', arguments)
-
-  if (v2 == null) {
-    t1 = this.createGhost(v0, v1)
-    t2 = this.createGhost(v1, v0)
-    v0.t = v1.t = t1
-    t1.n[0] = t1.n[1] = t1.n[2] = t2
-    t2.n[0] = t2.n[1] = t2.n[2] = t1
-  } else /* full triangle */ {
-    t = {v: [v0, v1, v2], n: new Array(3)}
-    t1 = this.createGhost(v1, v0)
-    t2 = this.createGhost(v2, v1)
-    t3 = this.createGhost(v0, v2)
-    v0.t = v1.t = v2.t = t
-    t1.n[2] = t2.n[2] = t3.n[2] = t
-    t.n[0] = t2
-    t.n[1] = t3
-    t.n[2] = t1
-    t1.n[0] = t2.n[1] = t3
-    t2.n[0] = t3.n[1] = t1
-    t3.n[0] = t1.n[1] = t2
-    this.tris.push(t)
-  }
-}
-
-Triangulation.prototype.createGhost = function (v0, v1) {
-  debug('createGhost', arguments)
-
-  var t = {v: [v0, v1, null], n: new Array(3)}
-  this.tris.push(t)
-
-  return t
-}
-
-// merge merges the vertices specified by ls and the ones specified by
-// rs into a delaunay triangulation.
-Triangulation.prototype.merge = function (j, lp, lr, rp, rr) {
-  debug('merge', arguments)
-
-  var verts = this.verts
-
-  // topl and topr contain the vertices of the upper convex boundary
-  // vl0 and vr0 are the vertices making up the current base edge. These
-  // will be changed to reflect the new base edge as they move up
-  var [vl0, vr0] = boundary(verts, j, lp, lr, rp, rr)
-  var [topr, topl] = boundary(verts, j, rp, rr, lp, lr)
-
-  // Create ghost triangles on convex boundaries. tb will be constantly
-  // updated as the merge moves upwards, ttop is only used at the end
-  // when it is stored in the neighbor list of the last merged triangle.
-  var tb = this.createGhost(vr0, vl0)
-  var ttop = this.createGhost(topl, topr)
-  var ttmp
-
-  if (tb.v[1] === ttop.v[0]) {
-    tb.n[0] = ttop
-    ttop.n[1] = tb
-  } else {
-    ttmp = ccw(vl0)
-    ttmp.n[1] = tb
-    tb.n[0] = ttmp
-    ttmp = cw(topl)
-    ttmp.n[0] = ttop
-    ttop.n[1] = ttmp
-  }
-
-  if (tb.v[0] === ttop.v[1]) {
-    tb.n[1] = ttop
-    ttop.n[0] = tb
-  } else {
-    ttmp = cw(vr0)
-    ttmp.n[0] = tb
-    tb.n[1] = ttmp
-    ttmp = ccw(topr)
-    ttmp.n[1] = ttop
-    ttop.n[0] = ttmp
-  }
-
-  // vl1 and vr1 are the cantidate vertices for the next merge step
-  var vl1, vr1
-
-  // tl and tr are ghost triangles which connect vl1 and vr1 to the base
-  // vertices
-  var tl = cw(vl0)
-  var tr = ccw(vr0)
-
-  // t is the triangle that has been newly created by the merge
-  // iteration. It is the starting point for flip propagation
-  var t
-
-  // useLeftGhost is a boolean which decides which region we use in the
-  // next phase of the merge we. The rest are temporary storage for
-  // computing useLeftGhost
-  var useLeftGhost, langle, rangle, lrangle
-
-  // Move upward between the regions, merging them as we go. Exit when
-  // we reach the top edge
-  while (!(vl0 === topl && vr0 === topr)) {
-    debug('merge step', [verts.indexOf(vl0), verts.indexOf(vr0)])
-
-    // tl and tr are the ghost triangles which can be mated with the
-    // opposite region
-    // set vl1 and vr1 to the other vertex of the cantidate ghost
-    // triangle
-    vl1 = tl.v[0]
-    vr1 = tr.v[1]
-
-    // Merge using the cantidate vertex with the lowest angle above the
-    // line connecting the two base vertices (we want to pick the o in
-    // the following diagram):
-    //       vl1
-    //        x
-    //       /  .
-    //      / vr1 .
-    //     /    o_  .
-    //    /       ———_.
-    //   .------------——.
-    //  vl0            vr0
-    rangle = angle(vr1, vr0, vl0)
-    langle = angle(vr0, vl0, vl1)
-    useLeftGhost = rangle > langle
-    if (useLeftGhost) {
-      lrangle = angle(vl1, vr0, vl0)
-      if (lrangle >= rangle) {
-        useLeftGhost = false
-      }
-    } else {
-      lrangle = angle(vr0, vl0, vr1)
-      if (lrangle >= langle) {
-        useLeftGhost = true
-      }
-    }
-
-    if (useLeftGhost) {
-      // mate the left ghost with the right base vertex
-      t = mateghost(tl, vr0, tb)
-      t.n[1] = null
-
-      // Move base up by one vertex
-      vl0 = vl1
-      tl = cw(vl0)
-
-      flipP4(t, 2, t.v[0], t.v[1], t.v[2])
-      flipP4(t, 1, t.v[0], t.v[1], t.v[2])
-      flipP4(t, 0, t.v[0], t.v[1], t.v[2])
-
-      t = ccw(vl0)
-
-    } else /* right triangle */{
-      // mate the right ghost with the left base vertex
-      t = mateghost(tr, vl0, tb)
-      t.n[0] = null
-
-      // Move base up by one vertex and go to next ghost triangle
-      vr0 = vr1
-      tr = ccw(vr0)
-
-      flipP4(t, 2, t.v[0], t.v[1], t.v[2])
-      flipP4(t, 1, t.v[0], t.v[1], t.v[2])
-      flipP4(t, 0, t.v[0], t.v[1], t.v[2])
-
-      t = cw(vr0)
-    }
-
-    // update the relevant trangles for next merge step
-    tb = t
-  }
-
-  // We are now at the top of the merge so add the ghost triangle at the
-  // upper convex boundary to the neighbors of t and propagate flips to
-  // complete the merge
-  ttop.n[2] = t
-  for (var i = 0; i < 3; i++) {
-    if (ttop.v.indexOf(t.v[i]) < 0) {
-      t.n[i] = ttop
-      break
-    }
-  }
-  flipP4(t, 2, t.v[0], t.v[1], t.v[2])
-  flipP4(t, 1, t.v[0], t.v[1], t.v[2])
-  flipP4(t, 0, t.v[0], t.v[1], t.v[2])
-}
-
 // flip performs an edge flip between triangle t and t.n[i] (the ith
 // neighbor of t)
 export function flip(t, i) {
   debug('flip', arguments)
 
   // u is the neighbor to be flipped with
-  var u = t.n[i]
+  let u = t.n[i]
 
   // j is the position of t in neighbors of u
-  var j = u.n.indexOf(t)
+  let j = u.n.indexOf(t)
 
   // cache index math
-  var i1 = (i+1)%3
-  var i2 = (i+2)%3
-  var j1 = (j+1)%3
-  var j2 = (j+2)%3
+  let i1 = (i+1)%3
+  let i2 = (i+2)%3
+  let j1 = (j+1)%3
+  let j2 = (j+2)%3
 
   // swap vertices
   t.v[i1] = u.v[j]
@@ -431,13 +433,13 @@ function flipP2(t, i) {
 
   // If t.n[i] is a ghost triangle or doesn't exist, we are done
   // propagating
-  var t1 = t.n[i]
+  let t1 = t.n[i]
   if (t1 == null || isghost(t1)) {
     return
   }
 
   // i1 is the index of our triangle in the other triangle
-  var i1 = t1.n.indexOf(t)
+  let i1 = t1.n.indexOf(t)
   if (i1 === -1) {
     throw new Error('Bad triangulation')
   }
@@ -462,7 +464,7 @@ function flipP4(t, i, v0, v1, v2) {
 
   // If neighboring triangle is a ghost, does not exist, or has already
   // been flipped
-  var t1 = t.n[i]
+  let t1 = t.n[i]
   if (isghost(t) || t1 == null || isghost(t1) ||
       t.v.indexOf(v0) === -1 ||
       t.v.indexOf(v1) === -1 ||
@@ -471,7 +473,7 @@ function flipP4(t, i, v0, v1, v2) {
   }
 
   // Set i1 to the index of the vertex not shared by t1
-  var i1 = t1.n.indexOf(t)
+  let i1 = t1.n.indexOf(t)
   if (i1 === -1) {
     throw new Error('Bad triangulation')
   }
@@ -487,10 +489,10 @@ function flipP4(t, i, v0, v1, v2) {
   flip(t, i)
 
   // Set ta = (t, i), tb = (t1, i1+1), tc = (t1, i1), and td = (t, i+1).
-  var ta = t.n[i]
-  var tb = t1.n[(i1+1)%3]
-  var tc = t1.n[i1]
-  var td = t.n[(i+1)%3]
+  let ta = t.n[i]
+  let tb = t1.n[(i1+1)%3]
+  let tc = t1.n[i1]
+  let td = t.n[(i+1)%3]
 
   // Call flip_p4(ta, index(ta, t))
   // Call flip_p4(tb, index(tb, t1))
@@ -517,9 +519,9 @@ export function isghost(t) {
 export function ccw(v) {
   debug('ccw', arguments)
 
-  var t = v.t
-  var torig = t
-  var tnext
+  let t = v.t
+  let torig = t
+  let tnext
 
   // If the vertex's triangle is already a ghost, we need to see if we
   // are on the correct side. If so, we return immediately.
@@ -546,9 +548,9 @@ export function ccw(v) {
 export function cw(v) {
   debug('cw', arguments)
 
-  var t = v.t
-  var torig = t
-  var tnext
+  let t = v.t
+  let torig = t
+  let tnext
 
   // If the vertex's triangle is a ghost, we need to immediately check
   // if we are on the correct side. If so, we return.
@@ -582,7 +584,7 @@ export function mateghost(t, v, tb) {
   }
 
   // Add t to the neighbors of tb and vice versa
-  for (var i = 0; i < 3; i++) {
+  for (let i = 0; i < 3; i++) {
     if (tb.v.indexOf(t.v[i]) < 0) {
       t.n[i] = tb
     }
@@ -599,51 +601,53 @@ export function circumradius(t) {
 }
 
 export function circumcenter(t) {
-  var [ a, b, c ] = t.v
-  var [ ax, ay ] = a.p
-  var [ bx, by ] = b.p
-  var [ cx, cy ] = c.p
+  let [ a, b, c ] = t.v
+  let [ ax, ay ] = a.p
+  let [ bx, by ] = b.p
+  let [ cx, cy ] = c.p
 
-  var d = 2*(ax*(by-cy) + bx*(cy-ay) + cx*(ay-by))
-  var am = ax*ax+ay*ay
-  var bm = bx*bx+by*by
-  var cm = cx*cx+cy*cy
-  var ux = (am*(by-cy) + bm*(cy-ay) + cm*(ay-by))/d
-  var uy = (am*(cx-bx) + bm*(ax-cx) + cm*(bx-ax))/d
+  let d = 2*(ax*(by-cy) + bx*(cy-ay) + cx*(ay-by))
+  let am = ax*ax+ay*ay
+  let bm = bx*bx+by*by
+  let cm = cx*cx+cy*cy
+  let ux = (am*(by-cy) + bm*(cy-ay) + cm*(ay-by))/d
+  let uy = (am*(cx-bx) + bm*(ax-cx) + cm*(bx-ax))/d
 
   return [ux, uy]
 }
 
 // inCircle returns true if v is in the circumcircle of t
 export function inCircle(t, v) {
-  var [ a, b, c ] = t.v
-  var [ ax, ay ] = a.p
-  var [ bx, by ] = b.p
-  var [ cx, cy ] = c.p
-  var [ vx, vy ] = v.p
+  let [ a, b, c ] = t.v
+  let [ ax, ay ] = a.p
+  let [ bx, by ] = b.p
+  let [ cx, cy ] = c.p
+  let [ vx, vy ] = v.p
 
   // algorithm from wikipedia
-  var d = 2*(ax*(by-cy) + bx*(cy-ay) + cx*(ay-by))
-  var am = ax*ax+ay*ay
-  var bm = bx*bx+by*by
-  var cm = cx*cx+cy*cy
-  var ux = (am*(by-cy) + bm*(cy-ay) + cm*(ay-by))/d
-  var uy = (am*(cx-bx) + bm*(ax-cx) + cm*(bx-ax))/d
-  var ur = (ux-ax)*(ux-ax) + (uy-ay)*(uy-ay)
-  var vr = (ux-vx)*(ux-vx) + (uy-vy)*(uy-vy)
+  let d = 2*(ax*(by-cy) + bx*(cy-ay) + cx*(ay-by))
+  let am = ax*ax+ay*ay
+  let bm = bx*bx+by*by
+  let cm = cx*cx+cy*cy
+  let ux = (am*(by-cy) + bm*(cy-ay) + cm*(ay-by))/d
+  let uy = (am*(cx-bx) + bm*(ax-cx) + cm*(bx-ax))/d
+  let ur = (ux-ax)*(ux-ax) + (uy-ay)*(uy-ay)
+  let vr = (ux-vx)*(ux-vx) + (uy-vy)*(uy-vy)
 
   return ur > vr
 }
 
+// boundary returns the upper and lower convex boundary between two sets
+// of vertices (ar[lp-lr] and ar[rp-rr])
 export function boundary(ar, j, lp, lr, rp, rr) {
   debug('boundary', arguments)
 
-  var e = j & 1
+  let e = j & 1
 
   // Let l be the rightmost point of lp-lr
   // Let r be the leftmost point of rp-rr
   // TODO: use the tree to find minimums
-  var l, r
+  let l, r
   if (lp < rp) {
     l = findMax(ar, 0, e, lp, lr)
     r = findMin(ar, 0, e, rp, rr)
@@ -652,10 +656,10 @@ export function boundary(ar, j, lp, lr, rp, rr) {
     r = findMax(ar, 0, e, rp, rr)
   }
 
-  var v
-  var tl = ccw(l)
-  var tr = cw(r)
-  var check = 0
+  let v
+  let tl = ccw(l)
+  let tr = cw(r)
+  let check = 0
 
   for (;;) {
 
@@ -687,8 +691,10 @@ export function boundary(ar, j, lp, lr, rp, rr) {
   }
 }
 
+// findMax finds the vertex in ar on the interval [p, r] with the
+// minimum coordinate in the e direction
 function findMin(ar, j, e, p, r) {
-  var i, pos, min, minPos = Infinity
+  let i, pos, min, minPos = Infinity
   for (i = p; i <= r; i++) {
     pos = ar[i].p[e]
     if (pos <= minPos) {
@@ -703,8 +709,10 @@ function findMin(ar, j, e, p, r) {
   return min
 }
 
+// findMax finds the vertex in ar on the interval [p, r] with the
+// maximum coordinate in the e direction
 function findMax(ar, j, e, p, r) {
-  var i, pos, max, maxPos = -Infinity
+  let i, pos, max, maxPos = -Infinity
   for (i = p; i <= r; i++) {
     pos = ar[i].p[e]
     if (pos >= maxPos) {
@@ -721,26 +729,29 @@ function findMax(ar, j, e, p, r) {
 
 // cross computes (v0-vs)x(v1-vs)
 export function cross(v0, vs, v1) {
-  var ux = v0.p[0] - vs.p[0]
-  var uy = v0.p[1] - vs.p[1]
-  var vx = v1.p[0] - vs.p[0]
-  var vy = v1.p[1] - vs.p[1]
+  let ux = v0.p[0] - vs.p[0]
+  let uy = v0.p[1] - vs.p[1]
+  let vx = v1.p[0] - vs.p[0]
+  let vy = v1.p[1] - vs.p[1]
   return ux*vy - uy*vx
 }
 
+// angle returns the angle between vectors (v0-vs) and (v1-vs) from
+// between 0 and 2π. Angles where the cross product would be negative
+// are mapped to [π, 2π)
 export function angle(v0, vs, v1) {
-  var ux = v0.p[0] - vs.p[0]
-  var uy = v0.p[1] - vs.p[1]
-  var vx = v1.p[0] - vs.p[0]
-  var vy = v1.p[1] - vs.p[1]
-  var xp = ux*vy - uy*vx
-  var dot = ux*vx + uy*vy
+  let ux = v0.p[0] - vs.p[0]
+  let uy = v0.p[1] - vs.p[1]
+  let vx = v1.p[0] - vs.p[0]
+  let vy = v1.p[1] - vs.p[1]
+  let xp = ux*vy - uy*vx
+  let dot = ux*vx + uy*vy
 
   if (xp === 0) {
     return dot > 0 ? 0 : π
   }
 
-  var ang = Math.acos(dot / (Math.sqrt(ux*ux+uy*uy) * Math.sqrt(vx*vx+vy*vy)))
+  let ang = Math.acos(dot / (Math.sqrt(ux*ux+uy*uy) * Math.sqrt(vx*vx+vy*vy)))
 
   return xp > 0 ? ang : 2*π - ang
 }

@@ -1,15 +1,15 @@
 import View from './view'
 import Triangulation from './delaunay'
 
-var canvas = document.querySelector('canvas')
+let canvas = document.querySelector('canvas')
 
-var viewport = [.15, .15, .7, .7]
-var points = []
-for (var i = 0; i < 400; i++) {
+let viewport = [.15, .15, .7, .7]
+let points = []
+for (let i = 0; i < 400; i++) {
   points.push({x: Math.random(), y: Math.random()})
 }
-var tri = window.tri = new Triangulation(points)
-var view = window.view = new View(canvas, tri, viewport)
+let tri = window.tri = new Triangulation(points)
+let view = window.view = new View(canvas, tri, viewport)
 
 window.checkNeighbors = function () {
   tri.tris.forEach(function (t) {

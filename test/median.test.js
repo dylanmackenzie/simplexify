@@ -1,7 +1,7 @@
 import * as med from './median'
 import assert from 'assert'
 
-var tests = {}
+let tests = {}
 
 tests.partition = {
   ins: [
@@ -14,7 +14,7 @@ tests.partition = {
 
 describe('partition', function () {
   it('should partition an array about its median', function () {
-    var cases = tests.partition
+    let cases = tests.partition
     cases.ins.forEach(testPartition)
   })
 })
@@ -22,7 +22,7 @@ describe('partition', function () {
 
 describe('slowPartition', function () {
   it('should partition an array about its median', function () {
-    var cases = tests.partition
+    let cases = tests.partition
     cases.ins.forEach(testPartition)
   })
 })
@@ -36,7 +36,7 @@ function testPartition(test) {
     if (i === verts.length >> 1) {
       return
     }
-    var c = v.p[0]
+    let c = v.p[0]
     if (i < verts.length >> 1) {
       if (c > median) {
         console.log(verts)
