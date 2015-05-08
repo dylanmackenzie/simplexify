@@ -12,9 +12,25 @@
     "mocha": "^2.2.4",
     "vinyl-source-stream": "^1.1.0"
   },
+  "eslintConfig": {
+    "ecmaFeatures": {
+      "modules": true
+    },
+    "env": {
+      "browser": true,
+      "node": true,
+      "es6": true
+    },
+    "rules": {
+      "semi": [2, "never"],
+      "quotes": [2, "single"],
+      "space-infix-ops": [0],
+      "no-use-before-define": [2, "nofunc"]
+    }
+  },
   "scripts": {
     "test": "mocha"
   },
-  "author": "",
+  "author": "Dylan MacKenzie",
   "license": "ISC"
 }
