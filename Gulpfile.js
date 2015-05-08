@@ -28,6 +28,17 @@ gulp.task('buildtest', ['compile'], function () {
     .pipe(gulp.dest('dist/'))
 })
 
+gulp.task('build', ['compile'], function () {
+  return browserify({
+      basedir: 'dist/',
+      entries: './index.js',
+      standalone: 'simplexify'
+
+    }).bundle()
+    .pipe(source('simplexify.js'))
+    .pipe(gulp.dest('dist/'))
+})
+
 gulp.task('server', function () {
   connect.server({
     port: 8888

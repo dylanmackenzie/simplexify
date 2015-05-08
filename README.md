@@ -1,7 +1,7 @@
 Simplexify
 ==========
 
-![Voronoi Diagram which follows mouse cursor](https://github.com/dylanmackenzie/simplexify/blob/master/gh-pages/animated-voronoi.gif)
+<img src='https://github.com/dylanmackenzie/simplexify/blob/master/gh-pages/animated-voronoi.gif' alt='Voronoi Diagram which follows mouse cursor' width=400 height=400 />
 
 Simplexify implements a [divide-and-conquer
 algorithm](http://link.springer.com/article/10.1007%2Fs12541-011-0056-1)
@@ -9,6 +9,9 @@ for calculating a Delaunay triangulation (and Voronoi diagram) in Javascript. It
 runs in O(n log n) time, and was written mainly to explore divide-and-conquer
 algorithms and try out some new ES6 features like modules, classes, let,
 and unpacking.
+
+Simplexify DOES NOT currently handle collinear vertices. Support is
+coming soon
 
 Delaunay and Voronoi
 ----------------
@@ -64,10 +67,17 @@ Simplexify provides a CanvasView class for displaying a triangulation on
 a given canvas. The CanvasView provides `before` and `after` hooks for
 styling the visualization. Read the docs for more information.
 
-Building
---------
+Build
+-----
 
 Simplexify uses [babel](https://babeljs.io) to transform es6 to es5 and
-[browserify](http://browserify.org) to package it for the browser. Run
-`gulp demo` to see a demo on localhost, and `gulp test` to run the test
-suite.
+[browserify](http://browserify.org) to package it for the browser. To
+use it, download `simplexify.js` from the releases tab on github and
+include it on your webpage. It will add a `simplexify` object to
+the global scope which exposes the `Delaunay` and `CanvasView`
+constructors.
+
+ If you want to work on Simplexify locally, you'll need node or iojs, npm, and
+ gulp. Simply clone the repo and run `npm install`. Run `gulp demo` to
+ see a demo on localhost, and `gulp test` to run the test suite.
+ Compiled files will be stored in the `dist` folder.
