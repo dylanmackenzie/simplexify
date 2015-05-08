@@ -1,7 +1,7 @@
 Simplexify
 ==========
 
-![Voronoi Diagram which follows mouse cursor](https://github.com/dylanmackenzie/simplexify/blob/master/gh-pages/animated-voronoi.gif)
+<img src='https://github.com/dylanmackenzie/simplexify/blob/master/gh-pages/animated-voronoi.gif' alt='Voronoi Diagram which follows mouse cursor' width=400 height=400 />
 
 Simplexify implements a [divide-and-conquer
 algorithm](http://link.springer.com/article/10.1007%2Fs12541-011-0056-1)
