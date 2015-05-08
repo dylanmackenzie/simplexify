@@ -7,25 +7,25 @@ var source = require('vinyl-source-stream')
 gulp.task('compile', function () {
   return gulp.src(['*.js', 'test/*.test.js', 'test/reporter.js', '!Gulpfile.js'])
     .pipe(babel())
-    .pipe(gulp.dest('es5/'))
+    .pipe(gulp.dest('dist/'))
 })
 
 gulp.task('builddemo', ['compile'], function () {
   return browserify({
-      basedir: 'es5/',
+      basedir: 'dist/',
       entries: './demo.js'
     }).bundle()
     .pipe(source('bundle.js'))
-    .pipe(gulp.dest('es5/'))
+    .pipe(gulp.dest('dist/'))
 })
 
 gulp.task('buildtest', ['compile'], function () {
   return browserify({
-      basedir: 'es5/',
+      basedir: 'dist/',
       entries: ['./median.test.js', './delaunay.test.js']
     }).bundle()
     .pipe(source('test.js'))
-    .pipe(gulp.dest('es5/'))
+    .pipe(gulp.dest('dist/'))
 })
 
 gulp.task('server', function () {
