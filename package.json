@@ -1,5 +1,5 @@
 {
-  "name": "delaunay",
+  "name": "simplexify",
   "version": "1.0.0",
   "description": "",
   "main": "delaunay.js",
@@ -29,8 +29,9 @@
     }
   },
   "scripts": {
-    "test": "mocha"
+    "test": "gulp test",
+    "benchmark": "gulp benchmark"
   },
   "author": "Dylan MacKenzie",
-  "license": "ISC"
+  "license": "MIT"
 }

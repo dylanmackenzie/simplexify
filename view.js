@@ -1,6 +1,6 @@
 import { ccw } from './delaunay.js'
 
-export default class DelaunayCanvas {
+export default class CanvasView {
   constructor(canvas, tri, viewport) {
     this.canvas = canvas
     this.height = canvas.height

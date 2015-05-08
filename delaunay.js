@@ -9,7 +9,7 @@ if (!global.debug) {
   global.debug = function () {}
 }
 
-// Triangulation computes the Delaunay triangulation for a given set of
+// Delaunay computes the Delaunay triangulation for a given set of
 // points. It accepts an array of objects which have both an x and a y
 // property whose values are numbers.name
 //
@@ -26,7 +26,7 @@ if (!global.debug) {
 //
 // tree is a flattened 2d tree used for efficiently selecting which
 // groups to merge
-export default class Triangulation {
+export default class Delaunay {
 
   constructor(points) {
     let verts = this.verts = new Array(points.length)
@@ -62,7 +62,7 @@ export default class Triangulation {
   // Triangulation for those vertices.
   delaunay() {
     if (this.verts.length < 2) {
-      throw new Error('Triangulation needs at least two vertices')
+      throw new Error('Delaunay Triangulation needs at least two vertices')
     }
 
     this.tris = []

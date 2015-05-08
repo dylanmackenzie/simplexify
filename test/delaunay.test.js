@@ -1,6 +1,6 @@
 /* eslint-env mocha */
 
-import Triangulation, * as del from './delaunay'
+import Delaunay, * as del from './delaunay'
 import View from './view.js'
 import assert from 'assert'
 
@@ -215,7 +215,7 @@ describe('delaunay', function () {
   cases.forEach(function (test) {
     it(test.it, function () {
       let verts = test.points.map(p => ({ x: p[0], y: p[1] }))
-      let tri = new Triangulation(verts)
+      let tri = new Delaunay(verts)
       if (this.canvas) {
         window.curView = new View(this.canvas, tri, test.viewport)
         this.canvas.scrollIntoView()
