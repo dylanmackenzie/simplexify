@@ -11,7 +11,7 @@ algorithms and try out some new ES6 features like modules, classes, let,
 and unpacking.
 
 Simplexify DOES NOT currently handle collinear vertices. Support is
-coming soon
+coming soon.
 
 Delaunay and Voronoi
 ----------------
@@ -29,6 +29,64 @@ maximum angle in the set of triangles.
 The [Voronoi diagram](http://en.wikipedia.org/wiki/Voronoi_diagram)
 is the geometric dual of the Delaunay triangulation. It is formed by
 connecting the circumcenters of all the triangles in the triangulation.
+
+Build
+-----
+
+Simplexify uses [babel](https://babeljs.io) to transform es6 to es5 and
+[browserify](http://browserify.org) to package it for the browser. To
+use it, download `simplexify.js` from the releases tab on github and
+include it on your webpage. It will add a `simplexify` object to
+the global scope which exposes the `Delaunay` and `CanvasView`
+constructors.
+
+If you want to work on Simplexify locally, you'll need node or iojs, npm, and
+gulp. Simply clone the repo and run `npm install`. Run `gulp demo` to
+see a demo on localhost, and `gulp test` to run the test suite.
+Compiled files will be stored in the `dist` folder.
+
+Usage
+-----
+
+### `Delaunay(points)`
+
+The Delaunay constructor returns an object which holds the state of the
+triangulation. `points` is an array of objects with an x and a y
+property. They will be used as the vertices in the Delaunay
+Triangulation.
+
+#### Instance Methods
+
+##### `delaunay()`
+computes the Delaunay triangulation.
+
+##### `voronoi()`
+computes the circumcenters of all triangles. It will call `delaunay()`
+if it has not yet been called.
+
+
+### `CanvasView(canvas, delaunay, viewport)`
+
+A CanvasView draws a `Delaunay` object onto `canvas`. `viewport` is the
+part of the coordinate system that will actually be displayed. It is an
+array of the form [x, y, width, height] with x and y describing the
+top-left point of the viewport
+
+#### Instance Methods
+
+##### `drawDelaunay(opts)`
+draws the delaunay triangulation.
+
+##### `drawVoronoi(opts)`
+draws the voronoi diagram.
+
+`opts` is an optional object which may contain the following properties:
+  - `clear`: clear canvas before drawing (default: true)
+  - `verts`: draw vertices (default: false)
+  - `vertLabels`: label vertices (has no effect without `verts`) (default: false)
+
+##### `drawVerts(text)`
+draws the vertices. If text is true, label them in order.
 
 Algorithm
 ---------
@@ -59,25 +117,3 @@ condition](http://en.wikibooks.org/wiki/Trigonometry/For_Enthusiasts/Delaunay_tr
 and perform [edge
 flips](http://en.wikipedia.org/wiki/Delaunay_triangulation#Visual_Delaunay_definition:_Flipping)
 until it does.
-
-Visualization
--------------
-
-Simplexify provides a CanvasView class for displaying a triangulation on
-a given canvas. The CanvasView provides `before` and `after` hooks for
-styling the visualization. Read the docs for more information.
-
-Build
------
-
-Simplexify uses [babel](https://babeljs.io) to transform es6 to es5 and
-[browserify](http://browserify.org) to package it for the browser. To
-use it, download `simplexify.js` from the releases tab on github and
-include it on your webpage. It will add a `simplexify` object to
-the global scope which exposes the `Delaunay` and `CanvasView`
-constructors.
-
- If you want to work on Simplexify locally, you'll need node or iojs, npm, and
- gulp. Simply clone the repo and run `npm install`. Run `gulp demo` to
- see a demo on localhost, and `gulp test` to run the test suite.
- Compiled files will be stored in the `dist` folder.
