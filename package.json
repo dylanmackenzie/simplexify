@@ -1,7 +1,7 @@
 {
   "name": "simplexify",
   "version": "1.0.0",
-  "description": "",
+  "description": "A performance oriented tool for creating Delaunay triangulations and Voronoi diagrams",
   "main": "delaunay.js",
   "dependencies": {},
   "devDependencies": {
@@ -33,5 +33,9 @@
     "benchmark": "gulp benchmark"
   },
   "author": "Dylan MacKenzie",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dylanmackenzie/simplexify"
+  },
   "license": "MIT"
 }
