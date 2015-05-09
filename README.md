@@ -55,12 +55,10 @@ triangulation. `points` is an array of objects with an x and a y
 property. They will be used as the vertices in the Delaunay
 Triangulation.
 
-#### Instance Methods
-
-##### `delaunay()`
+##### `#delaunay()`
 computes the Delaunay triangulation.
 
-##### `voronoi()`
+##### `#voronoi()`
 computes the circumcenters of all triangles. It will call `delaunay()`
 if it has not yet been called.
 
@@ -72,12 +70,10 @@ part of the coordinate system that will actually be displayed. It is an
 array of the form [x, y, width, height] with x and y describing the
 top-left point of the viewport
 
-#### Instance Methods
-
-##### `drawDelaunay(opts)`
+##### `#drawDelaunay(opts)`
 draws the delaunay triangulation.
 
-##### `drawVoronoi(opts)`
+##### `#drawVoronoi(opts)`
 draws the voronoi diagram.
 
 `opts` is an optional object which may contain the following properties:
@@ -85,7 +81,7 @@ draws the voronoi diagram.
   - `verts`: draw vertices (default: false)
   - `vertLabels`: label vertices (has no effect without `verts`) (default: false)
 
-##### `drawVerts(text)`
+##### `#drawVerts(text)`
 draws the vertices. If text is true, label them in order.
 
 Algorithm
