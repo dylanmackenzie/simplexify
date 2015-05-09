@@ -2,6 +2,7 @@
   "name": "simplexify",
   "version": "0.1.0",
   "description": "A performance oriented tool for creating Delaunay triangulations and Voronoi diagrams",
+  "keywords": ["voronoi", "delaunay"],
   "main": "delaunay.js",
   "dependencies": {},
   "devDependencies": {
