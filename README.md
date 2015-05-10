@@ -126,11 +126,13 @@ The algorithm works by sorting the set of vertices into a flattened
 two. Triangulations for these sets are trivial to create and do not
 overlap because of the 2d-tree.
 
-We then recursively merge these triangulations by finding the upper and
-lower convex boundaries between them, transforming the ghost triangles
-on one side into real triangles by connecting their null vertex to the
-other side. After each of these connections is made we check to see if
-the triangulation satisfies the [Delaunay
+We then recursively merge these triangulations. First, we need to find
+the upper and lower convex boundaries between them, which we use as the
+start and endpoints of our merge process. We then iterate over the ghost
+triangles on either side, transforming them into real triangles by
+connecting their null vertex to a vertex from the other triangulation.
+After each of these connections is made we check to see if the
+triangulation satisfies the [Delaunay
 condition](http://en.wikibooks.org/wiki/Trigonometry/For_Enthusiasts/Delaunay_triangulation#Formal_Definition)
 and perform [edge
 flips](http://en.wikipedia.org/wiki/Delaunay_triangulation#Visual_Delaunay_definition:_Flipping)
