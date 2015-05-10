@@ -55,10 +55,18 @@ triangulation. `points` is an array of objects with an x and a y
 property. They will be used as the vertices in the Delaunay
 Triangulation.
 
-##### `#delaunay()`
+#### `#verts`
+the vertices in the triangulation. Internal representation is subject to
+change.
+
+#### `#tris`
+the triangles in the triangulation. Internal representation is subject to
+change.
+
+#### `#delaunay()`
 computes the Delaunay triangulation.
 
-##### `#voronoi()`
+#### `#voronoi()`
 computes the circumcenters of all triangles. It will call `delaunay()`
 if it has not yet been called.
 
@@ -68,21 +76,35 @@ if it has not yet been called.
 A CanvasView draws a `Delaunay` object onto `canvas`. `viewport` is the
 part of the coordinate system that will actually be displayed. It is an
 array of the form [x, y, width, height] with x and y describing the
-top-left point of the viewport
+top-left point of the viewport.
 
-##### `#drawDelaunay(opts)`
+#### `#cx`
+the canvas context for the view.
+
+#### `#canvas`
+a reference to the canvas element.
+
+#### `#drawVerts(text)`
+draws the vertices. If `text` is true, label them in order.
+
+#### `#drawDelaunay(opts)`
 draws the delaunay triangulation.
 
-##### `#drawVoronoi(opts)`
+#### `#drawVoronoi(opts)`
 draws the voronoi diagram.
 
 `opts` is an optional object which may contain the following properties:
-  - `clear`: clear canvas before drawing (default: true)
-  - `verts`: draw vertices (default: false)
-  - `vertLabels`: label vertices (has no effect without `verts`) (default: false)
-
-##### `#drawVerts(text)`
-draws the vertices. If text is true, label them in order.
+  - `clear`: clear canvas before drawing (default: true).
+  - `verts`: draw vertices (default: false).
+  - `vertLabels`: label vertices (has no effect without `verts`) (default: false).
+  - `before`: callback with signature `function(o, i)` which is invoked
+    before every step in the draw process. `o` is the primitive currently
+    being drawn (a vertex for `drawVoronoi`, a triangle for
+    `drawDelaunay`) and `i` is the number of draw iterations which have
+    taken place. `this` will refer to the `CanvasView` object, so
+    `this.cx.strokeStyle` will access the strokeStyle of the canvas
+    context.
+  - `after`: same as `before` but is called after every draw step.
 
 Algorithm
 ---------
