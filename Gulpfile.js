@@ -2,10 +2,12 @@ var gulp = require('gulp')
 var babel = require('gulp-babel')
 var browserify = require('browserify')
 var connect = require('gulp-connect')
+var changed = require('gulp-changed')
 var source = require('vinyl-source-stream')
 
 gulp.task('compile', function () {
   return gulp.src(['*.js', 'test/*.test.js', 'test/reporter.js', '!Gulpfile.js'])
+    .pipe(changed('dist/'))
     .pipe(babel())
     .pipe(gulp.dest('dist/'))
 })
