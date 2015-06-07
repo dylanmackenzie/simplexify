@@ -10,8 +10,8 @@ runs in O(n log n) time, and was written mainly to explore divide-and-conquer
 algorithms and try out some new ES6 features like modules, classes, let,
 and unpacking.
 
-Simplexify DOES NOT currently handle collinear vertices. Support is
-coming soon.
+As of v0.2, Simplexify supports collinearity  by slightly fuzzing
+the coordinates of collinear vertices.
 
 Delaunay and Voronoi
 ----------------
