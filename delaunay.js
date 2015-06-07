@@ -61,8 +61,8 @@ export default class Delaunay {
   // delaunay sorts the vertices into a 2d-tree and solves the Delaunay
   // Triangulation for those vertices.
   delaunay() {
-    if (this.verts.length < 2) {
-      throw new Error('Delaunay Triangulation needs at least two vertices')
+    if (this.verts.length < 3) {
+      throw new Error('Delaunay Triangulation needs at least three vertices')
     }
 
     let is_success = false
