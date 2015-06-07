@@ -22,26 +22,33 @@
           case 'merge step':
           case 'merge':
             if (!window.curView) break
-            curView.drawDelaunay({ ghosts: true })
+            curView.clear()
+            curView.cx.fillStyle = 'black'
+            curView.drawVerts(true)
+            curView.cx.fillStyle = 'transparent'
+            curView.drawDelaunay({ ghosts: true, clear: false })
             debugger
             break
           case 'ccwghost':
           case 'cwghost':
             break
           case 'mateghost':
-            if (!window.curView) break
-            curView.drawDelaunay({ ghosts: true })
             break
           case 'flipP2':
           case 'flipP4':
             break
           case 'flip':
             if (!window.curView) break
-            curView.drawDelaunay({ ghosts: true })
+            curView.clear()
+            curView.cx.fillStyle = 'black'
+            curView.drawVerts(true)
+            curView.cx.fillStyle = 'transparent'
+            curView.drawDelaunay({ ghosts: true, clear: false })
             debugger
             break
         }
       }
+
 
       DelaunayReporter.prototype = Object.create(Mocha.reporters.HTML.prototype)
       function DelaunayReporter(runner) {
@@ -59,6 +66,12 @@
             test.ctx.canvas = canvas
           }
         });
+
+        runner.on('test end', function (test) {
+          if (test.parent.title === 'delaunay') {
+            curView.drawDelaunay({ ghosts: true })
+          }
+        })
       }
 
       mocha.reporter(DelaunayReporter)
