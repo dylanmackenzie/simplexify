@@ -65,9 +65,16 @@ export default class Delaunay {
       throw new Error('Delaunay Triangulation needs at least two vertices')
     }
 
-    this.tris = []
-    sort2d(this.verts, 0, 0, this.verts.length - 1)
-    this.solve(0, 0, this.verts.length - 1)
+    let is_success = false
+    for (let tries = 0; !is_success && tries < 10; tries++) {
+      this.tris = []
+      sort2d(this.verts, 0, 0, this.verts.length - 1)
+      is_success = this.solve(0, 0, this.verts.length - 1)
+    }
+
+    if (!is_success) {
+      throw new Error('Collinear vertices could not be resolved')
+    }
   }
 
   // voronoi computes the circumcenters of every triangle in the
@@ -100,38 +107,47 @@ export default class Delaunay {
 
     if (r - p === 1) {
       this.createTriangle(verts[p], verts[r])
-      return
+      return true
     }
 
-    // TODO: Handle Collinear vertices
     if (r - p === 2) {
-      // order points in ccw fashion
+      // If we have collinear vertices, smudge their coordinates.
+      // TODO: implement floating point nextAfter: these small deltas might
+      // round to 0 if the coordinates are large enough.
       let cp = cross(verts[p], verts[p+1], verts[r])
+      let tries = 0
+      while (cp === 0 && tries < 10) {
+        const sigma = 1e-5;
+        verts[p].p[0]   += 2*sigma*Math.random() - sigma
+        verts[p].p[1]   += 2*sigma*Math.random() - sigma
+        verts[p+1].p[0] += 2*sigma*Math.random() - sigma
+        verts[p+1].p[1] += 2*sigma*Math.random() - sigma
+        verts[r].p[0]   += 2*sigma*Math.random() - sigma
+        verts[r].p[1]   += 2*sigma*Math.random() - sigma
+
+        cp = cross(verts[p], verts[p+1], verts[r])
+        ++tries
+      }
+
+      // order points in ccw fashion
       if (cp < 0) {
         this.createTriangle(verts[p], verts[p+1], verts[r])
       } else if (cp > 0) {
         this.createTriangle(verts[p], verts[r], verts[p+1])
       } else {
-        // throw new Error('Collinear vertices')
-        if (angle(verts[p], verts[p+1], verts[r]) > π/2) {
-          this.createTriangle(verts[p], verts[p+1])
-          this.createTriangle(verts[p+1], verts[r])
-        } else if (angle(verts[p], verts[r], verts[p+1]) > π/2) {
-          this.createTriangle(verts[p], verts[r])
-          this.createTriangle(verts[r], verts[p+1])
-        } else {
-          this.createTriangle(verts[p+1], verts[p])
-          this.createTriangle(verts[p], verts[r])
-        }
+        // If all else fails, throw an exception
+        throw new Error('Collinear vertices could not be resolved')
       }
 
-      return
+      return tries == 0
     }
 
     let q = (r+p) >> 1
 
-    this.solve(j+1, p, q)
-    this.solve(j+1, q+1, r)
+    let success = true
+    success = this.solve(j+1, p, q)
+    success = this.solve(j+1, q+1, r) && success
+    if (!success) return false
 
     // flip sides for merges at odd depths to ensure consistency in
     // algorithms using cw and ccw
@@ -140,6 +156,8 @@ export default class Delaunay {
     } else {
       this.merge(j, p, q, q+1, r)
     }
+
+    return true
   }
 
   // createTriangle creates a new triangle from a raw set of vertices. It
