@@ -47,11 +47,17 @@ export default class CanvasView {
     opts = opts || {}
     opts.clear = opts.clear == null ? true : opts.clear
     opts.ghosts = opts.ghosts == null ? false : opts.ghosts
+    opts.verts = opts.verts == null ? false : opts.verts
+    opts.vertLabels = opts.vertLabels == null ? false : opts.verts
     let before = opts.before || function (){}
     let after = opts.after || function (){}
 
     if (opts.clear) {
       this.clear()
+    }
+
+    if (opts.verts) {
+      this.drawVerts(opts.vertLabels)
     }
 
     for (let i = 0, len = tris.length; i < len; i++) {
@@ -99,6 +105,8 @@ export default class CanvasView {
 
     opts = opts || {}
     opts.clear = opts.clear == null ? true : opts.clear
+    opts.verts = opts.verts == null ? false : opts.verts
+    opts.vertLabels = opts.vertLabels == null ? false : opts.verts
     let before = opts.before || function (){}
     let after = opts.after || function (){}
 
@@ -108,6 +116,10 @@ export default class CanvasView {
 
     if (opts.clear) {
       this.clear()
+    }
+
+    if (opts.verts) {
+      this.drawVerts(opts.vertLabels)
     }
 
     for (let i = 0, len = verts.length; i < len; i++) {
@@ -130,9 +142,6 @@ export default class CanvasView {
       cx.beginPath()
       cx.moveTo.apply(cx, this.coords(c))
       do {
-        if (t.v.indexOf(v) < 0) {
-          debugger
-        }
         t = t.n[(t.v.indexOf(v)+2)%3]
         c = circumcenters[tris.indexOf(t)]
         if (c == null) {
