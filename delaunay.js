@@ -266,7 +266,7 @@ export default class Delaunay {
     // Move upward between the regions, merging them as we go. Exit when
     // we reach the top edge
     while (!(vl0 === topl && vr0 === topr)) {
-      debug('merge step', [verts.indexOf(vl0), verts.indexOf(vr0)])
+      debug('merge step', vl0, vr0)
 
       // tl and tr are the ghost triangles which can be mated with the
       // opposite region
@@ -341,7 +341,7 @@ export default class Delaunay {
     // complete the merge
     ttop[5] = t
     for (let i = 0; i < 3; i++) {
-      if (ttop.indexOf(t[i]) < 0) {
+      if (findVertex(ttop, t[i]) < 0) {
         t[i+3] = ttop
         break
       }
@@ -383,7 +383,7 @@ export function flip(t, i) {
   let u = t[i+3]
 
   // j is the position of t in neighbors of u
-  let j = u.indexOf(t) - 3
+  let j = findNeighbor(u, t)
 
   // cache index math
   let i1 = (i+1)%3
@@ -428,14 +428,14 @@ export function flip(t, i) {
     if (t[i+3][2] == null) {
       t[i+3][5] = t
     } else {
-      t[i+3][t[i+3].indexOf(u)] = t
+      t[i+3][findNeighbor(t[i+3], u) + 3] = t
     }
   }
   if (u[j+3] != null) {
     if (u[j+3][2] == null) {
       u[j+3][5] = u
     } else {
-      u[j+3][u[j+3].indexOf(t)] = u
+      u[j+3][findNeighbor(u[j+3], t) + 3] = u
     }
   }
 
@@ -457,7 +457,7 @@ function flipP2(t, i) {
   }
 
   // i1 is the index of our triangle in the other triangle
-  let i1 = t1.indexOf(t) - 3
+  let i1 = findNeighbor(t1, t)
   if (i1 < 0) {
     throw new Error('Bad triangulation')
   }
@@ -484,14 +484,14 @@ function flipP4(t, i, v0, v1, v2) {
   // been flipped
   let t1 = t[i+3]
   if (isghost(t) || t1 == null || isghost(t1) ||
-      t.indexOf(v0) === -1 ||
-      t.indexOf(v1) === -1 ||
-      t.indexOf(v2) === -1) {
+      findVertex(t, v0) === -1 ||
+      findVertex(t, v1) === -1 ||
+      findVertex(t, v2) === -1) {
     return
   }
 
   // Set i1 to the index of the vertex not shared by t1
-  let i1 = t1.indexOf(t) - 3
+  let i1 = findNeighbor(t1, t)
   if (i1 < 0) {
     throw new Error('Bad triangulation')
   }
@@ -517,21 +517,46 @@ function flipP4(t, i, v0, v1, v2) {
   // Call flip_p4(tc, index(tc, t1))
   // Call flip_p4(td, index(td, t))
   if (ta != null) {
-    flipP4(ta, ta.indexOf(t) - 3, ta[0], ta[1], ta[2])
+    flipP4(ta, findNeighbor(ta, t), ta[0], ta[1], ta[2])
   }
   if (tb != null) {
-    flipP4(tb, tb.indexOf(t1) - 3, tb[0], tb[1], tb[2])
+    flipP4(tb, findNeighbor(tb, t1), tb[0], tb[1], tb[2])
   }
   if (tc != null) {
-    flipP4(tc, tc.indexOf(t1) - 3, tc[0], tc[1], tc[2])
+    flipP4(tc, findNeighbor(tc, t1), tc[0], tc[1], tc[2])
   }
   if (td != null) {
-    flipP4(td, td.indexOf(t) - 3, td[0], td[1], td[2])
+    flipP4(td, findNeighbor(td, t), td[0], td[1], td[2])
   }
 }
 
 export function isghost(t) {
   return t[2] == null
+}
+
+function findVertex(t, v) {
+  if (t[0] == v) {
+    return 0
+  } else if (t[1] == v) {
+    return 1
+  } else if (t[2] == v) {
+    return 2
+  } else {
+    return -1
+  }
+
+}
+
+function findNeighbor(t, n) {
+  if (t[3] == n) {
+    return 0
+  } else if (t[4] == n) {
+    return 1
+  } else if (t[5] == n) {
+    return 2
+  } else {
+    return -1
+  }
 }
 
 export function ccw(v) {
@@ -543,12 +568,12 @@ export function ccw(v) {
 
   // If the vertex's triangle is already a ghost, we need to see if we
   // are on the correct side. If so, we return immediately.
-  if (isghost(t) && t.indexOf(v) === 0) {
+  if (isghost(t) && findVertex(t, v) === 0) {
     return t
   }
 
   do {
-    tnext = t[(t.indexOf(v)+1)%3 + 3]
+    tnext = t[(findVertex(t, v)+1)%3 + 3]
     if (tnext == null) {
       return t
     }
@@ -572,12 +597,12 @@ export function cw(v) {
 
   // If the vertex's triangle is a ghost, we need to immediately check
   // if we are on the correct side. If so, we return.
-  if (isghost(t) && t.indexOf(v) === 1) {
+  if (isghost(t) && findVertex(t, v) === 1) {
     return t
   }
 
   do {
-    tnext = t[(t.indexOf(v)+2)%3 + 3]
+    tnext = t[findVertex(t, v)+2)%3 + 3]
     if (tnext == null) {
       return t
     }
@@ -597,16 +622,16 @@ export function mateghost(t, v, tb) {
 
   t[2] = v
 
-  if (tb.indexOf(v) < 0) {
+  if (findVertex(tb, v) < 0) {
     throw new Error('Mating triangles that do not share vertices')
   }
 
   // Add t to the neighbors of tb and vice versa
   for (let i = 0; i < 3; i++) {
-    if (tb.indexOf(t[i]) < 0) {
+    if (findVertex(tb, t[i]) < 0) {
       t[i+3] = tb
     }
-    if (t.indexOf(tb[i]) < 0) {
+    if (findVertex(t, tb[i]) < 0) {
       tb[i+3] = t
     }
   }
