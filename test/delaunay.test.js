@@ -63,23 +63,19 @@ describe('sort2d', function () {
 //
 describe('flip', function () {
   it('should flip an edge shared between two triangles', function () {
-    let t1 = {}, t2 = {}, t3 = {}, t4 = {}, t5 = {}, t6 = {}
+    let t1 = [], t2 = []
     let v1 = [0, 1, t1], v2 = [-1, 0, t1]
     let v3 = [0, -1, t1], v4 = [1, 0, t2]
+    t1.splice(0, 0, v1, v2, v3)
+    t2.splice(0, 0, v1, v3, v4)
+    let t3 = [v1, v4, null, null, null, t2]
+    let t4 = [v4, v3, null, null, null, t2]
+    let t5 = [v2, v1, null, null, null, t1]
+    let t6 = [v3, v2, null, null, null, t1]
+    t1.splice(3, 0, t6, t2, t5)
+    t2.splice(3, 0, t4, t3, t1)
     let tris = [null, t1, t2, t3, t4, t5, t6]
     let verts = [null, v1, v2, v3, v4]
-    t1.v = [v1, v2, v3]
-    t1.n = [t6, t2, t5]
-    t2.v = [v1, v3, v4]
-    t2.n = [t4, t3, t1]
-    t3.v = [v1, v4, null]
-    t3.n = [null, null, t2]
-    t4.v = [v4, v3, null]
-    t4.n = [null, null, t2]
-    t5.v = [v2, v1, null]
-    t5.n = [null, null, t1]
-    t6.v = [v3, v2, null]
-    t6.n = [null, null, t1]
 
     function vertIndex(v) {
       return verts.indexOf(v)
@@ -89,33 +85,33 @@ describe('flip', function () {
     }
 
     del.flip(t1, 1)
-    if (!(t1.v.indexOf(v1) >= 0 &&
-          t1.v.indexOf(v2) >= 0 &&
-          t1.v.indexOf(v4) >= 0)) {
-      assert.fail(t1.v.map(vertIndex), [1, 2, 4], null, '==')
+    if (!(t1.indexOf(v1) >= 0 &&
+          t1.indexOf(v2) >= 0 &&
+          t1.indexOf(v4) >= 0)) {
+      assert.fail(t1.map(vertIndex), [1, 2, 4], null, '==')
     }
-    if (!(t2.v.indexOf(v2) >= 0 &&
-          t2.v.indexOf(v3) >= 0 &&
-          t2.v.indexOf(v4) >= 0)) {
-      assert.fail(t2.v.map(vertIndex), [2, 3, 4], null, '==')
+    if (!(t2.indexOf(v2) >= 0 &&
+          t2.indexOf(v3) >= 0 &&
+          t2.indexOf(v4) >= 0)) {
+      assert.fail(t2.map(vertIndex), [2, 3, 4], null, '==')
     }
-    let t1v1 = t1.n[t1.v.indexOf(v1)]
+    let t1v1 = t1[t1.indexOf(v1) + 3]
     assert.equal(t1v1, t2, 't1.n[v1] !== t2 instead got t'+triIndex(t1v1))
-    let t1v2 = t1.n[t1.v.indexOf(v2)]
+    let t1v2 = t1[t1.indexOf(v2) + 3]
     assert.equal(t1v2, t3, 't1.n[v2] !== t3 instead got t'+triIndex(t1v2))
-    let t1v4 = t1.n[t1.v.indexOf(v4)]
+    let t1v4 = t1[t1.indexOf(v4) + 3]
     assert.equal(t1v4, t5, 't1.n[v4] !== t5 instead got t'+triIndex(t1v4))
-    let t2v3 = t2.n[t2.v.indexOf(v3)]
+    let t2v3 = t2[t2.indexOf(v3) + 3]
     assert.equal(t2v3, t1, 't2.n[v3] !== t1 instead got t'+triIndex(t2v3))
-    let t2v2 = t2.n[t2.v.indexOf(v2)]
+    let t2v2 = t2[t2.indexOf(v2) + 3]
     assert.equal(t2v2, t4, 't2.n[v2] !== t4 instead got t'+triIndex(t2v2))
-    let t2v4 = t2.n[t2.v.indexOf(v4)]
+    let t2v4 = t2[t2.indexOf(v4) + 3]
     assert.equal(t2v4, t6, 't2.n[v4] !== t6 instead got t'+triIndex(t2v4))
 
-    assert.equal(t3.n[2], t1, 't3 should neighbor t1')
-    assert.equal(t5.n[2], t1, 't5 should neighbor t1')
-    assert.equal(t4.n[2], t2, 't4 should neighbor t2')
-    assert.equal(t6.n[2], t2, 't6 should neighbor t2')
+    assert.equal(t3[5], t1, 't3 should neighbor t1')
+    assert.equal(t5[5], t1, 't5 should neighbor t1')
+    assert.equal(t4[5], t2, 't4 should neighbor t2')
+    assert.equal(t6[5], t2, 't6 should neighbor t2')
   })
 })
 
@@ -144,11 +140,11 @@ describe('angle', function () {
 
 function verifyDelaunay(tri) {
   return !tri.tris.some(t => {
-    if (t.v[2] == null) {
+    if (t[2] == null) {
       return false
     }
 
-    return tri.verts.some(v => t.v.indexOf(v) < 0 ? del.inCircle(t, v) : false)
+    return tri.verts.some(v => t.indexOf(v) < 0 ? del.inCircle(t, v) : false)
   })
 }
 
@@ -169,16 +165,16 @@ describe('boundary', function () {
 
 function checkNeighbors(tri) {
   tri.tris.forEach(function (t) {
-    if (t.v[2] == null) {
+    if (t[2] == null) {
       return
     }
-    t.n.forEach(function (ne) {
+    t.slice(3, 6).forEach(function (ne) {
       if (ne == null) {
         return
       }
       let count = 0
-      t.v.forEach(function (v) {
-        if (ne.v.indexOf(v) < 0) {
+      t.slice(0, 3).forEach(function (v) {
+        if (ne.indexOf(v) < 0) {
           count++
         }
       })

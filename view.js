@@ -62,7 +62,7 @@ export default class CanvasView {
 
     for (let i = 0, len = tris.length; i < len; i++) {
       let t = tris[i]
-      let v2 = t.v[2]
+      let v2 = t[2]
 
       before.call(this, t, i)
 
@@ -74,22 +74,22 @@ export default class CanvasView {
         }
 
         cx.setLineDash([4])
-        dx = t.v[1][0] - t.v[0][0]
-        dy = t.v[1][1] - t.v[0][1]
+        dx = t[1][0] - t[0][0]
+        dy = t[1][1] - t[0][1]
 
-        x = t.v[0][0] + dx/2
-        y = t.v[0][1] + dy/2
+        x = t[0][0] + dx/2
+        y = t[0][1] + dy/2
         v2 = { p: [-dy/6 + x, dx/6 + y] }
       }
       cx.beginPath()
-      cx.moveTo.apply(cx, this.coords(t.v[0]))
-      cx.lineTo.apply(cx, this.coords(t.v[1]))
+      cx.moveTo.apply(cx, this.coords(t[0]))
+      cx.lineTo.apply(cx, this.coords(t[1]))
       cx.lineTo.apply(cx, this.coords(v2))
-      cx.lineTo.apply(cx, this.coords(t.v[0]))
+      cx.lineTo.apply(cx, this.coords(t[0]))
       cx.fill()
       cx.stroke()
 
-      if (t.v[2] == null) {
+      if (t[2] == null) {
         cx.setLineDash([])
       }
 
@@ -128,10 +128,10 @@ export default class CanvasView {
       if (t == null) {
         t = v.t
       } else {
-        t = t.n[(t.v.indexOf(v)+2)%3]
+        t = t[(t.indexOf(v)+2)%3 + 3]
       }
 
-      if (t.v[2] == null) {
+      if (t[2] == null) {
         continue
       }
 
@@ -142,7 +142,7 @@ export default class CanvasView {
       cx.beginPath()
       cx.moveTo.apply(cx, this.coords(c))
       do {
-        t = t.n[(t.v.indexOf(v)+2)%3]
+        t = t[(t.indexOf(v)+2)%3 + 3]
         c = circumcenters[tris.indexOf(t)]
         if (c == null) {
           break
