@@ -31,7 +31,7 @@ export default class Delaunay {
   constructor(points) {
     let verts = this.verts = new Array(points.length)
     points.forEach(function (p, i) {
-      verts[i] = { p: [p.x, p.y], t: null }
+      verts[i] = [p.x, p.y, null]
     })
 
     this.tris = []
@@ -118,12 +118,12 @@ export default class Delaunay {
       let tries = 0
       while (cp === 0 && tries < 10) {
         const sigma = 1e-5;
-        verts[p].p[0]   += 2*sigma*Math.random() - sigma
-        verts[p].p[1]   += 2*sigma*Math.random() - sigma
-        verts[p+1].p[0] += 2*sigma*Math.random() - sigma
-        verts[p+1].p[1] += 2*sigma*Math.random() - sigma
-        verts[r].p[0]   += 2*sigma*Math.random() - sigma
-        verts[r].p[1]   += 2*sigma*Math.random() - sigma
+        verts[p][0]   += 2*sigma*Math.random() - sigma
+        verts[p][1]   += 2*sigma*Math.random() - sigma
+        verts[p+1][0] += 2*sigma*Math.random() - sigma
+        verts[p+1][1] += 2*sigma*Math.random() - sigma
+        verts[r][0]   += 2*sigma*Math.random() - sigma
+        verts[r][1]   += 2*sigma*Math.random() - sigma
 
         cp = cross(verts[p], verts[p+1], verts[r])
         ++tries
@@ -173,7 +173,7 @@ export default class Delaunay {
     if (v2 == null) {
       t1 = this.createGhost(v0, v1)
       t2 = this.createGhost(v1, v0)
-      v0.t = v1.t = t1
+      v0[2] = v1[2] = t1
       t1.n[0] = t1.n[1] = t1.n[2] = t2
       t2.n[0] = t2.n[1] = t2.n[2] = t1
     } else /* full triangle */ {
@@ -181,7 +181,7 @@ export default class Delaunay {
       t1 = this.createGhost(v1, v0)
       t2 = this.createGhost(v2, v1)
       t3 = this.createGhost(v0, v2)
-      v0.t = v1.t = v2.t = t
+      v0[2] = v1[2] = v2[2] = t
       t1.n[2] = t2.n[2] = t3.n[2] = t
       t.n[0] = t2
       t.n[1] = t3
@@ -414,11 +414,11 @@ export function flip(t, i) {
   }
 
   // change ownership of vertices if needed
-  if (t.v[i2].t === u) {
-    t.v[i2].t = t
+  if (t.v[i2][2] === u) {
+    t.v[i2][2] = t
   }
-  if (u.v[j2].t === t) {
-    u.v[j2].t = u
+  if (u.v[j2][2] === t) {
+    u.v[j2][2] = u
   }
 
   // swap neighbor not involved in flip
@@ -537,7 +537,7 @@ export function isghost(t) {
 export function ccw(v) {
   debug('ccw', arguments)
 
-  let t = v.t
+  let t = v[2]
   let torig = t
   let tnext
 
@@ -566,7 +566,7 @@ export function ccw(v) {
 export function cw(v) {
   debug('cw', arguments)
 
-  let t = v.t
+  let t = v[2]
   let torig = t
   let tnext
 
@@ -620,9 +620,9 @@ export function circumradius(t) {
 
 export function circumcenter(t) {
   let [ a, b, c ] = t.v
-  let [ ax, ay ] = a.p
-  let [ bx, by ] = b.p
-  let [ cx, cy ] = c.p
+  let [ ax, ay ] = a
+  let [ bx, by ] = b
+  let [ cx, cy ] = c
 
   let d = 2*(ax*(by-cy) + bx*(cy-ay) + cx*(ay-by))
   let am = ax*ax+ay*ay
@@ -637,10 +637,10 @@ export function circumcenter(t) {
 // inCircle returns true if v is in the circumcircle of t
 export function inCircle(t, v) {
   let [ a, b, c ] = t.v
-  let [ ax, ay ] = a.p
-  let [ bx, by ] = b.p
-  let [ cx, cy ] = c.p
-  let [ vx, vy ] = v.p
+  let [ ax, ay ] = a
+  let [ bx, by ] = b
+  let [ cx, cy ] = c
+  let [ vx, vy ] = v
 
   // algorithm from wikipedia
   let d = 2*(ax*(by-cy) + bx*(cy-ay) + cx*(ay-by))
@@ -714,9 +714,9 @@ export function boundary(ar, j, lp, lr, rp, rr) {
 function findMin(ar, j, e, p, r) {
   let i, pos, min, minPos = Infinity
   for (i = p; i <= r; i++) {
-    pos = ar[i].p[e]
+    pos = ar[i][e]
     if (pos <= minPos) {
-      if (pos === minPos && ar[i].p[1-e] < min.p[1-e]) {
+      if (pos === minPos && ar[i][1-e] < min[1-e]) {
         continue
       }
       minPos = pos
@@ -732,9 +732,9 @@ function findMin(ar, j, e, p, r) {
 function findMax(ar, j, e, p, r) {
   let i, pos, max, maxPos = -Infinity
   for (i = p; i <= r; i++) {
-    pos = ar[i].p[e]
+    pos = ar[i][e]
     if (pos >= maxPos) {
-      if (pos === maxPos && ar[i].p[1-e] < max.p[1-e]) {
+      if (pos === maxPos && ar[i][1-e] < max[1-e]) {
         continue
       }
       maxPos = pos
@@ -747,10 +747,10 @@ function findMax(ar, j, e, p, r) {
 
 // cross computes (v0-vs)x(v1-vs)
 export function cross(v0, vs, v1) {
-  let ux = v0.p[0] - vs.p[0]
-  let uy = v0.p[1] - vs.p[1]
-  let vx = v1.p[0] - vs.p[0]
-  let vy = v1.p[1] - vs.p[1]
+  let ux = v0[0] - vs[0]
+  let uy = v0[1] - vs[1]
+  let vx = v1[0] - vs[0]
+  let vy = v1[1] - vs[1]
   return ux*vy - uy*vx
 }
 
@@ -758,10 +758,10 @@ export function cross(v0, vs, v1) {
 // between 0 and 2π. Angles where the cross product would be negative
 // are mapped to [π, 2π)
 export function angle(v0, vs, v1) {
-  let ux = v0.p[0] - vs.p[0]
-  let uy = v0.p[1] - vs.p[1]
-  let vx = v1.p[0] - vs.p[0]
-  let vy = v1.p[1] - vs.p[1]
+  let ux = v0[0] - vs[0]
+  let uy = v0[1] - vs[1]
+  let vx = v1[0] - vs[0]
+  let vy = v1[1] - vs[1]
   let xp = ux*vy - uy*vx
   let dot = ux*vx + uy*vy
 

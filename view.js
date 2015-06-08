@@ -25,8 +25,8 @@ export default class CanvasView {
     let scale = [width / viewport[2], height / viewport[3]]
 
     if (y == null) {
-      y = x.p[1]
-      x = x.p[0]
+      y = x[1]
+      x = x[0]
     }
 
     return [
@@ -74,11 +74,11 @@ export default class CanvasView {
         }
 
         cx.setLineDash([4])
-        dx = t.v[1].p[0] - t.v[0].p[0]
-        dy = t.v[1].p[1] - t.v[0].p[1]
+        dx = t.v[1][0] - t.v[0][0]
+        dy = t.v[1][1] - t.v[0][1]
 
-        x = t.v[0].p[0] + dx/2
-        y = t.v[0].p[1] + dy/2
+        x = t.v[0][0] + dx/2
+        y = t.v[0][1] + dy/2
         v2 = { p: [-dy/6 + x, dx/6 + y] }
       }
       cx.beginPath()
@@ -191,8 +191,8 @@ export default class CanvasView {
       let e = j & 1
       let q = (p+r) >> 1
       let m = ar[q]
-      let x = m.p[0]
-      let y = m.p[1]
+      let x = m[0]
+      let y = m[1]
 
       if (e) {
         lines.push({xs: [left, right], ys: [y, y]})

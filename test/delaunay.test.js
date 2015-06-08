@@ -13,15 +13,15 @@ function verify2dTree(ar, j, p, r) {
 
   let e = j & 1
   let q = (p + r)>> 1
-  let mid = ar[q].p[e]
+  let mid = ar[q][e]
 
   for (let i = p; i < q; i++) {
-    if (ar[i].p[e] > mid) {
+    if (ar[i][e] > mid) {
       return false
     }
   }
   for (let i = q + 1; i <= r; i++) {
-    if (ar[i].p[e] < mid) {
+    if (ar[i][e] < mid) {
       return false
     }
   }
@@ -44,7 +44,7 @@ describe('sort2d', function () {
   it('should sort an unordered array of vertices into a 2d tree', function () {
     let cases = tests.sort2d
     cases.forEach(function (test) {
-      let verts = test.points.map(p => ({ p }))
+      let verts = test.points
       it(test.it, function () {
         del.sort2d(verts, 0, 0, verts.length - 1)
         assert.ok(verify2dTree, '2d tree not in correct order')
@@ -64,8 +64,8 @@ describe('sort2d', function () {
 describe('flip', function () {
   it('should flip an edge shared between two triangles', function () {
     let t1 = {}, t2 = {}, t3 = {}, t4 = {}, t5 = {}, t6 = {}
-    let v1 = {p: [0, 1], t: t1}, v2 = {p: [-1, 0], t: t1}
-    let v3 = {p: [0, -1], t: t1}, v4 = {p: [1, 0], t: t2}
+    let v1 = [0, 1, t1], v2 = [-1, 0, t1]
+    let v3 = [0, -1, t1], v4 = [1, 0, t2]
     let tris = [null, t1, t2, t3, t4, t5, t6]
     let verts = [null, v1, v2, v3, v4]
     t1.v = [v1, v2, v3]
@@ -135,7 +135,7 @@ tests.angle = [
 describe('angle', function () {
   let cases = tests.angle
   cases.forEach(test => {
-    let verts = test.points.map(p => ({ p }))
+    let verts = test.points
     it(test.it, function () {
       assert.equal(del.angle.apply(null, verts), test.out)
     })

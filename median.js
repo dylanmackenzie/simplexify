@@ -1,6 +1,6 @@
 export function slowPartition(ar, e, p, r) {
   let copy = ar.slice(p, r+1).sort(function (a, b) {
-    return a.p[e] - b.p[e]
+    return a[e] - b[e]
   })
 
   let splice = [].splice.bind(ar, p, copy.length)
@@ -14,12 +14,12 @@ export function partition(ar, e, p, r) {
   while (r - p > 4) {
     // Partition array around median of medians
     let momi = medianOfMedians(ar, e, p, r)
-    let mval = ar[momi].p[e]
+    let mval = ar[momi][e]
     let left = p + 1, right = r
     swap(ar, p, momi)
     for (; right > left; left++) {
-      if (ar[left].p[e] > mval) {
-        while (ar[right].p[e] > mval && right > left) {
+      if (ar[left][e] > mval) {
+        while (ar[right][e] > mval && right > left) {
           --right
         }
 
@@ -89,11 +89,11 @@ function swap(ar, i, j) {
   ar[j] = tmp
 }
 
-// insertionSort sorts ar from p to r inclusive using ar[i].p[e] as a
+// insertionSort sorts ar from p to r inclusive using ar[i][e] as a
 // discriminant
 function insertionSort(ar, e, p, r) {
   for (let i = p+1; i <= r; ++i) {
-    for (let j = i; j > p && ar[j-1].p[e] > ar[j].p[e]; --j) {
+    for (let j = i; j > p && ar[j-1][e] > ar[j][e]; --j) {
       let tmp = ar[j]
       ar[j] = ar[j-1]
       ar[j-1] = tmp
@@ -110,44 +110,44 @@ function select5(ar, e, i1) {
   let i5 = i4 + 1
 
   // Ensure i1 < i2
-  if (ar[i1].p[e] > ar[i2].p[e]) {
+  if (ar[i1][e] > ar[i2][e]) {
     swap(ar, i1, i2)
   }
 
   // Ensure i4 < i5
-  if (ar[i4].p[e] > ar[i5].p[e]) {
+  if (ar[i4][e] > ar[i5][e]) {
     swap(ar, i4, i5)
   }
 
   // Ensure i1 < i4 && i2 < i5
-  if (ar[i1].p[e] > ar[i4].p[e]) {
+  if (ar[i1][e] > ar[i4][e]) {
     swap(ar, i1, i4)
     swap(ar, i2, i5)
   }
 
-  if (ar[i3].p[e] > ar[i2].p[e]) {
-    if (ar[i2].p[e] < ar[i4].p[e]) {
-      if (ar[i3].p[e] < ar[i4].p[e]) {
+  if (ar[i3][e] > ar[i2][e]) {
+    if (ar[i2][e] < ar[i4][e]) {
+      if (ar[i3][e] < ar[i4][e]) {
         return i3
       } else {
         return i4
       }
     } else {
-      if (ar[i2].p[e] < ar[i5].p[e]) {
+      if (ar[i2][e] < ar[i5][e]) {
         return i2
       } else {
         return i5
       }
     }
   } else {
-    if (ar[i3].p[e] > ar[i4].p[e]) {
-      if (ar[i3].p[e] < ar[i5].p[e]) {
+    if (ar[i3][e] > ar[i4][e]) {
+      if (ar[i3][e] < ar[i5][e]) {
         return i3
       } else {
         return i5
       }
     } else {
-      if (ar[i2].p[e] < ar[i4].p[e]) {
+      if (ar[i2][e] < ar[i4][e]) {
         return i2
       } else {
         return i4

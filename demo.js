@@ -29,10 +29,10 @@ tri.verts.forEach(function (v) {
 })
 
 canvas.addEventListener('mousemove', function (e) {
-  lastv.p[0] = e.offsetX / e.target.width
-  lastv.p[1] = (e.target.height - e.offsetY) / e.target.height
-  lastv.p[0] = lastv.p[0] * view.viewport[2] + view.viewport[0]
-  lastv.p[1] = lastv.p[1] * view.viewport[3] + view.viewport[1]
+  lastv[0] = e.offsetX / e.target.width
+  lastv[1] = (e.target.height - e.offsetY) / e.target.height
+  lastv[0] = lastv[0] * view.viewport[2] + view.viewport[0]
+  lastv[1] = lastv[1] * view.viewport[3] + view.viewport[1]
 
   tri.delaunay()
   tri.voronoi()

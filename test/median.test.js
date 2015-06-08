@@ -29,15 +29,15 @@ describe('slowPartition', function () {
 })
 
 function testPartition(test) {
-  let verts = test[0].map(function (p) { return {p: [p, 0]} })
+  let verts = test[0].map(function (p) { return [p, 0, null] })
   med.slowPartition(verts, test[1], test[2], test[3])
   verts = verts.slice(test[2], test[3] + 1)
-  let median = verts[verts.length >> 1].p[0]
+  let median = verts[verts.length >> 1][0]
   verts.forEach(function (v, i) {
     if (i === verts.length >> 1) {
       return
     }
-    let c = v.p[0]
+    let c = v[0]
     if (i < verts.length >> 1) {
       if (c > median) {
         console.log(verts)
