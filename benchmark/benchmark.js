@@ -3,7 +3,7 @@ import sr from 'seedrandom'
 import { slowPartition, partition } from './median'
 import Delaunay from './delaunay'
 
-const BENCH_LEN = 8
+const BENCH_LEN = 16
 
 let rng = new Math.seedrandom(42)
 let suites = {
