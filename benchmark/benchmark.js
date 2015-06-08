@@ -3,7 +3,7 @@ import sr from 'seedrandom'
 import { slowPartition, partition } from './median'
 import Delaunay from './delaunay'
 
-const BENCH_LEN = 8
+const BENCH_LEN = 16
 
 let rng = new Math.seedrandom(42)
 let suites = {
@@ -16,7 +16,7 @@ let benches = []
 for (let i = 1; i < BENCH_LEN; i++) {
   let bench = []
   for (let j = 0; j < Math.pow(2, i); j++) {
-    bench.push({ p: [rng(), rng()], t: null })
+    bench.push([rng(), rng(), null])
   }
   benches.push(bench)
 }
