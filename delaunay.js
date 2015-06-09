@@ -89,7 +89,7 @@ export default class Delaunay {
     }
 
     for (let i = 0, len = tris.length; i < len; i++) {
-      if (isghost(tris[i])) {
+      if (tris[i][2] == null) {
         this.circumcenters[i] = null
       } else {
         this.circumcenters[i] = { p: circumcenter(tris[i]) }
@@ -452,7 +452,7 @@ function flipP2(t, i) {
   // If the ith neighbor of t is a ghost triangle or doesn't exist, we
   // are done propagating
   let t1 = t[i+3]
-  if (i ==- -1 || t1 == null || isghost(t1)) {
+  if (i ==- -1 || t1 == null || t1[2] == null) {
     return
   }
 
@@ -483,7 +483,7 @@ function flipP4(t, i, v0, v1, v2) {
   // If neighboring triangle is a ghost, does not exist, or has already
   // been flipped
   let t1 = t[i+3]
-  if (i === -1 || t1 == null || isghost(t) || isghost(t1) ||
+  if (i === -1 || t1 == null || t[2] == null || t1[2] == null ||
       findVertex(t, v0) === -1 ||
       findVertex(t, v1) === -1 ||
       findVertex(t, v2) === -1) {
@@ -530,10 +530,6 @@ function flipP4(t, i, v0, v1, v2) {
   }
 }
 
-export function isghost(t) {
-  return t[2] == null
-}
-
 function findVertex(t, v) {
   if (t[0] === v) {
     return 0
@@ -568,7 +564,7 @@ export function ccw(v) {
 
   // If the vertex's triangle is already a ghost, we need to see if we
   // are on the correct side. If so, we return immediately.
-  if (isghost(t) && findVertex(t, v) === 0) {
+  if (t[2] == null && findVertex(t, v) === 0) {
     return t
   }
 
@@ -581,7 +577,7 @@ export function ccw(v) {
     if (t === torig) {
       return null
     }
-  } while (!isghost(t))
+  } while (t[2] != null)
 
   return t
 }
@@ -597,7 +593,7 @@ export function cw(v) {
 
   // If the vertex's triangle is a ghost, we need to immediately check
   // if we are on the correct side. If so, we return.
-  if (isghost(t) && findVertex(t, v) === 1) {
+  if (t[2] == null && findVertex(t, v) === 1) {
     return t
   }
 
@@ -610,7 +606,7 @@ export function cw(v) {
     if (t === torig) {
       return null
     }
-  } while (!isghost(t))
+  } while (t[2] != null)
 
   return t
 }
