@@ -3,11 +3,18 @@ import Triangulation from './delaunay'
 
 let canvas = document.querySelector('canvas')
 
-let viewport = [.15, .15, .7, .7]
-let points = []
-for (let i = 0; i < 400; i++) {
+let viewport = [0, 0, 1, 1]
+let points = [
+  { x: 0, y: 0.00001 },
+  { x: 0, y: 0 },
+  { x: 0, y: 1 },
+  { x: 1, y: 0 },
+  { x: 1, y: 1 },
+]
+for (let i = 0; i < 500; i++) {
   points.push({x: Math.random(), y: Math.random()})
 }
+
 let tri = window.tri = new Triangulation(points)
 let view = window.view = new View(canvas, tri, viewport)
 
@@ -15,7 +22,7 @@ window.debug = function(){}
 
 tri.delaunay()
 tri.voronoi()
-view.cx.lineWidth = 2
+view.cx.lineWidth = 1
 view.cx.strokeStyle = 'white'
 
 let lastv = tri.verts[0]
