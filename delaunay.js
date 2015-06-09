@@ -144,8 +144,7 @@ export default class Delaunay {
 
     let q = (r+p) >> 1
 
-    let success = true
-    success = this.solve(j+1, p, q)
+    let success = this.solve(j+1, p, q)
     success = this.solve(j+1, q+1, r) && success
     if (!success) return false
 
