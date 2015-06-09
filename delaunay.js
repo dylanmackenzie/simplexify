@@ -92,7 +92,7 @@ export default class Delaunay {
       if (tris[i][2] == null) {
         this.circumcenters[i] = null
       } else {
-        this.circumcenters[i] = { p: circumcenter(tris[i]) }
+        this.circumcenters[i] = circumcenter(tris[i])
 
       }
     }
@@ -530,7 +530,7 @@ function flipP4(t, i, v0, v1, v2) {
   }
 }
 
-function findVertex(t, v) {
+export function findVertex(t, v) {
   if (t[0] === v) {
     return 0
   } else if (t[1] === v) {
@@ -543,7 +543,7 @@ function findVertex(t, v) {
 
 }
 
-function findNeighbor(t, n) {
+export function findNeighbor(t, n) {
   if (t[3] === n) {
     return 0
   } else if (t[4] === n) {

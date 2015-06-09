@@ -1,4 +1,4 @@
-import { ccw } from './delaunay.js'
+import { ccw, findVertex } from './delaunay.js'
 
 export default class CanvasView {
   constructor(canvas, tri, viewport) {
@@ -125,10 +125,12 @@ export default class CanvasView {
     for (let i = 0, len = verts.length; i < len; i++) {
       let v = verts[i]
       let t = ccw(v)
+
+      // ccw returns null if t is an interior vertex
       if (t == null) {
-        t = v.t
+        t = v[2]
       } else {
-        t = t[(t.indexOf(v)+2)%3 + 3]
+        t = t[(findVertex(t, v)+2)%3 + 3]
       }
 
       if (t[2] == null) {
@@ -142,7 +144,7 @@ export default class CanvasView {
       cx.beginPath()
       cx.moveTo.apply(cx, this.coords(c))
       do {
-        t = t[(t.indexOf(v)+2)%3 + 3]
+        t = t[(findVertex(t, v)+2)%3 + 3]
         c = circumcenters[tris.indexOf(t)]
         if (c == null) {
           break
