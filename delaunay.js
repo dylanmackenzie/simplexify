@@ -644,7 +644,6 @@ export function circumcenter(t) {
   let ax = a[0], ay = a[1]
   let bx = b[0], by = b[1]
   let cx = c[0], cy = c[1]
-  let vx = v[0], vy = v[1]
 
   let d = 2*(ax*(by-cy) + bx*(cy-ay) + cx*(ay-by))
   let am = ax*ax+ay*ay
