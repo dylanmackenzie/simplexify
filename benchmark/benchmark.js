@@ -4,56 +4,29 @@ import { slowPartition, partition } from './median'
 import Delaunay from './delaunay'
 
 const BENCH_LEN = 16
+global.Delaunay = Delaunay
 
-let rng = new Math.seedrandom(42)
-let suites = {
-  delaunay: new Benchmark.Suite('delaunay'),
-  partition: new Benchmark.Suite('partition'),
-  slowPartition: new Benchmark.Suite('slowPartition')
+Math.seedrandom(42)
+
+for (let i = 3; i < BENCH_LEN; ++i) {
+  new Benchmark('delaunay'+i, {
+    'setup': function () {
+      let ar = []
+
+      for (let j = 0; j < Math.pow(2, this.options.count); j++) {
+        ar.push({x: Math.random(), y: Math.random()})
+      }
+    },
+    'fn': function () {
+      let del = new global.Delaunay(ar)
+      del.delaunay()
+    },
+    'onComplete': function (e) {
+      console.log(Math.pow(2, this.options.count) + '\t' + e.target.stats.mean)
+    },
+    'onError': function(e) {
+      console.log(e.target.error)
+    },
+    'count': i
+  }).run()
 }
-
-let benches = []
-for (let i = 1; i < BENCH_LEN; i++) {
-  let bench = []
-  for (let j = 0; j < Math.pow(2, i); j++) {
-    bench.push([rng(), rng(), null])
-  }
-  benches.push(bench)
-}
-
-benches.forEach(function(ar, i) {
-  suites.slowPartition.add('slowPartition\t'+i, function() {
-    slowPartition(Benchmark.deepClone(ar), 0, 0, ar.length-1)
-  })
-
-  suites.partition.add('partition\t'+i, function() {
-    partition(Benchmark.deepClone(ar), 0, 0, ar.length-1)
-  })
-
-  suites.delaunay.add('delaunay\t'+i, function () {
-    let del = new Delaunay([])
-    del.verts = Benchmark.deepClone(ar)
-    del.delaunay()
-  })
-})
-
-for (let name in suites) {
-  if (name !== 'delaunay') {
-    continue
-  }
-
-  suites[name].on('cycle', (e) => {
-    let index = e.target.name.split('\t')[1]
-    console.log(benches[index].length + '\t' + e.target.stats.mean)
-  })
-
-  suites[name].on('error', (e) => {
-    console.log(e.error)
-  })
-
-  suites[name].on('start', (suite) => {
-    console.log(suite.currentTarget.name + '\n')
-  })
-  suites[name].run()
-}
-
