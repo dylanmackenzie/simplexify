@@ -644,10 +644,11 @@ export function circumradius(t) {
 }
 
 export function circumcenter(t) {
-  let [ a, b, c ] = t
-  let [ ax, ay ] = a
-  let [ bx, by ] = b
-  let [ cx, cy ] = c
+  let a = t[0], b = t[1], c = t[2]
+  let ax = a[0], ay = a[1]
+  let bx = b[0], by = b[1]
+  let cx = c[0], cy = c[1]
+  let vx = v[0], vy = v[1]
 
   let d = 2*(ax*(by-cy) + bx*(cy-ay) + cx*(ay-by))
   let am = ax*ax+ay*ay
@@ -661,11 +662,11 @@ export function circumcenter(t) {
 
 // inCircle returns true if v is in the circumcircle of t
 export function inCircle(t, v) {
-  let [ a, b, c ] = t
-  let [ ax, ay ] = a
-  let [ bx, by ] = b
-  let [ cx, cy ] = c
-  let [ vx, vy ] = v
+  let a = t[0], b = t[1], c = t[2]
+  let ax = a[0], ay = a[1]
+  let bx = b[0], by = b[1]
+  let cx = c[0], cy = c[1]
+  let vx = v[0], vy = v[1]
 
   // algorithm from wikipedia
   let d = 2*(ax*(by-cy) + bx*(cy-ay) + cx*(ay-by))
