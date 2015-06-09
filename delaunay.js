@@ -452,7 +452,7 @@ function flipP2(t, i) {
   // If the ith neighbor of t is a ghost triangle or doesn't exist, we
   // are done propagating
   let t1 = t[i+3]
-  if (t1 == null || isghost(t1)) {
+  if (i ==- -1 || t1 == null || isghost(t1)) {
     return
   }
 
@@ -483,7 +483,7 @@ function flipP4(t, i, v0, v1, v2) {
   // If neighboring triangle is a ghost, does not exist, or has already
   // been flipped
   let t1 = t[i+3]
-  if (isghost(t) || t1 == null || isghost(t1) ||
+  if (i === -1 || t1 == null || isghost(t) || isghost(t1) ||
       findVertex(t, v0) === -1 ||
       findVertex(t, v1) === -1 ||
       findVertex(t, v2) === -1) {
@@ -535,11 +535,11 @@ export function isghost(t) {
 }
 
 function findVertex(t, v) {
-  if (t[0] == v) {
+  if (t[0] === v) {
     return 0
-  } else if (t[1] == v) {
+  } else if (t[1] === v) {
     return 1
-  } else if (t[2] == v) {
+  } else if (t[2] === v) {
     return 2
   } else {
     return -1
@@ -548,11 +548,11 @@ function findVertex(t, v) {
 }
 
 function findNeighbor(t, n) {
-  if (t[3] == n) {
+  if (t[3] === n) {
     return 0
-  } else if (t[4] == n) {
+  } else if (t[4] === n) {
     return 1
-  } else if (t[5] == n) {
+  } else if (t[5] === n) {
     return 2
   } else {
     return -1
@@ -602,7 +602,7 @@ export function cw(v) {
   }
 
   do {
-    tnext = t[findVertex(t, v)+2)%3 + 3]
+    tnext = t[(findVertex(t, v)+2)%3 + 3]
     if (tnext == null) {
       return t
     }
