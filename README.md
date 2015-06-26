@@ -146,7 +146,7 @@ Benchmarking was performed on a 2008 dual-core x86-64 Pentium T4300
 by running `gulp build` followed by `node dist/benchmark.js`, which
 calculates a delaunay triangulation for a randomly distributed set of
 vertices. For 32768 vertices, it requires an average of 627ms, which is
-roughly six times slower than the C++ implementation used by Yang, Choi
-and Jung. This could be explained by the overhead of an interpreted
-language, but it is likely that there is room for improvement in my
-implementation.
+roughly six times slower than the C++ implementation written by Yang,
+Choi and Jung and executed on a 2.4GHz processor. This disparity could
+be explained by the overhead of an interpreted language, but it is
+likely that there is room for improvement in my implementation.
