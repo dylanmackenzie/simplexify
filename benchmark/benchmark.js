@@ -8,6 +8,7 @@ global.Delaunay = Delaunay
 
 Math.seedrandom(42)
 
+console.log('Vertices' + '\t\t' + 'Average Time')
 for (let i = 3; i < BENCH_LEN; ++i) {
   new Benchmark('delaunay'+i, {
     'setup': function () {
@@ -22,7 +23,7 @@ for (let i = 3; i < BENCH_LEN; ++i) {
       del.delaunay()
     },
     'onComplete': function (e) {
-      console.log(Math.pow(2, this.options.count) + '\t' + e.target.stats.mean)
+      console.log(Math.pow(2, this.options.count) + '\t\t' + e.target.stats.mean)
     },
     'onError': function(e) {
       console.log(e.target.error)

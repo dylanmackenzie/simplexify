@@ -3,8 +3,8 @@ Simplexify
 
 <img src='https://github.com/dylanmackenzie/simplexify/blob/master/gh-pages/animated-voronoi.gif' alt='Voronoi Diagram which follows mouse cursor' width=400 height=400 />
 
-Simplexify implements a [divide-and-conquer
-algorithm](http://link.springer.com/article/10.1007%2Fs12541-011-0056-1)
+Simplexify implements the divide-and-conquer
+algorithm [described by Yang, Choi and Jung](http://link.springer.com/article/10.1007%2Fs12541-011-0056-1)
 for calculating a Delaunay triangulation (and Voronoi diagram) in Javascript. It
 runs in O(n log n) time, and was written mainly to explore divide-and-conquer
 algorithms and try out some new ES6 features like modules, classes, let,
@@ -137,3 +137,16 @@ condition](http://en.wikibooks.org/wiki/Trigonometry/For_Enthusiasts/Delaunay_tr
 and perform [edge
 flips](http://en.wikipedia.org/wiki/Delaunay_triangulation#Visual_Delaunay_definition:_Flipping)
 until it does.
+
+Benchmarks
+----------
+
+Benchmarking was performed on a 2008 dual-core x86-64 Pentium T4300
+2.1GHz processor with 3GB of RAM. You may benchmark on your own computer
+by running `gulp build` followed by `node dist/benchmark.js`, which
+calculates a delaunay triangulation for a randomly distributed set of
+vertices. For 32768 vertices, it requires an average of 627ms, which is
+roughly six times slower than the C++ implementation used by Yang, Choi
+and Jung. This could be explained by the overhead of an interpreted
+language, but it is likely that there is room for improvement in my
+implementation.
