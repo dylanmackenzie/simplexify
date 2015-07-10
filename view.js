@@ -79,7 +79,7 @@ export default class CanvasView {
 
         x = t[0][0] + dx/2
         y = t[0][1] + dy/2
-        v2 = { p: [-dy/6 + x, dx/6 + y] }
+        v2 = [-dy/6 + x, dx/6 + y]
       }
       cx.beginPath()
       cx.moveTo.apply(cx, this.coords(t[0]))
