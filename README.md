@@ -3,6 +3,8 @@ Simplexify
 
 <img src='https://github.com/dylanmackenzie/simplexify/blob/master/gh-pages/animated-voronoi.gif' alt='Voronoi Diagram which follows mouse cursor' width=400 height=400 />
 
+View the demo [live on Codepen](http://codepen.io/mackendy/full/oXdwgq/).
+
 Simplexify implements the divide-and-conquer
 algorithm [described by Yang, Choi and Jung](http://link.springer.com/article/10.1007%2Fs12541-011-0056-1)
 for calculating a Delaunay triangulation (and Voronoi diagram) in Javascript. It
